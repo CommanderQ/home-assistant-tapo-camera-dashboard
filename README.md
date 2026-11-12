@@ -13,9 +13,22 @@ Home Assistant Lovelace card (`custom:tapo-c260-card`) for a **Tapo C260**: live
 - go2rtc / WebRTC stream wiring with an industrial **placeholder** when unavailable
 - Phone-first touch targets (≥44px)
 - Single camera
+- Lovelace visual editor (`ha-form`) for all card config fields
 - Local Vite demo with mock `hass` (no HA install)
 
 ## Lovelace config
+
+### Visual editor
+
+After the card resource is loaded, use the dashboard UI:
+
+1. Edit a dashboard → **Add card** → search **Tapo C260 Camera Card** (or pick it from custom cards).
+2. Configure entities in the form (camera, PTZ buttons, optional HD / go2rtc / privacy / angle / calibrate / preset, hold interval).
+3. Save — no YAML required for the fields the card already supports.
+
+You can still switch to **Show code editor** for the same schema.
+
+### YAML
 
 ```yaml
 type: custom:tapo-c260-card
@@ -31,6 +44,7 @@ ptz:
   right: button.living_room_move_right
   angle: number.living_room_movement_angle
   calibrate: button.living_room_calibrate
+  # preset: select.living_room_move_to_preset
 privacy: switch.living_room_privacy
 ```
 
@@ -45,6 +59,7 @@ Entity IDs are instance-specific — copy them from your `tapo_control` device p
 | `title` | Stream chrome label (default `Feed · C260`) |
 | `hold_interval_ms` | Hold-to-repeat interval (default `350`) |
 | `privacy` | Privacy switch — disables the pad when `on` |
+| `ptz.preset` | Optional preset select entity |
 
 ## Dependencies
 
@@ -73,7 +88,7 @@ This is a Lovelace **frontend** card (Lit bundle + `hacs.json`). Install via HAC
    - URL similar to `/hacsfiles/home-assistant-tapo-camera-dashboard/tapo-c260-card.js`
    - Type: **JavaScript Module**  
    HACS usually adds this for you; add it manually only if it is missing.
-7. Add the card YAML from [Lovelace config](#lovelace-config) to a dashboard.
+7. Add the card from the dashboard UI ([visual editor](#visual-editor)) or paste the YAML from [Lovelace config](#lovelace-config).
 
 `hacs.json` names the frontend file as `tapo-c260-card.js`. HACS serves that file from a **GitHub Release** asset with the same filename. If no release is published yet, use Option B (manual) after building locally, or wait for a release that includes `tapo-c260-card.js`.
 

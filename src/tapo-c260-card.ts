@@ -3,6 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
 import { camera3d } from "./camera-3d";
+import "./editor";
 import {
   applyNudge,
   cameraTransform,
@@ -77,6 +78,10 @@ export class TapoC260Card extends LitElement {
       min_columns: 3,
       min_rows: 4,
     };
+  }
+
+  public static getConfigElement(): HTMLElement {
+    return document.createElement("tapo-c260-card-editor");
   }
 
   public static getStubConfig(): Partial<TapoC260CardConfig> {
