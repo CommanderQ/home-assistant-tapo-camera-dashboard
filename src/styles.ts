@@ -301,7 +301,6 @@ export const cardStyles = css`
     height: 88px;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
     pointer-events: none;
   }
 
@@ -328,6 +327,15 @@ export const cardStyles = css`
     );
     transform: translateZ(-22px) rotateX(90deg);
     transform-style: preserve-3d;
+  }
+
+  /* Neck + body only — pivots above the fixed base. */
+  .cam-head {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transform-origin: 50% 70%;
+    transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
   }
 
   .cam-base,

@@ -2,8 +2,6 @@ import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
-import { styleMap } from "lit/directives/style-map.js";
-
 import { camera3d } from "./camera-3d";
 import {
   applyNudge,
@@ -300,13 +298,8 @@ export class TapoC260Card extends LitElement {
                       this._pressing = false;
                     }}
                   >
-                    <div
-                      class="cam3d"
-                      style=${styleMap({
-                        transform: cameraTransform(this._orientation),
-                      })}
-                    >
-                      ${camera3d()}
+                    <div class="cam3d">
+                      ${camera3d(cameraTransform(this._orientation))}
                     </div>
                   </button>
                 </div>
