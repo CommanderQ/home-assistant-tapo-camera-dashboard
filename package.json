@@ -11,7 +11,8 @@
     "build": "tsc --noEmit && vite build",
     "build:demo": "vite build --mode demo",
     "preview": "vite preview --mode demo",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:sources": "node scripts/verify-video-sources.mjs"
   },
   "keywords": [
     "home-assistant",
@@ -34,6 +35,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "playwright": "^1.65.0",
     "typescript": "^5.7.3",
     "vite": "^6.0.11"
   }

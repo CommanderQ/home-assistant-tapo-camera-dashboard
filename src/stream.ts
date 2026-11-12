@@ -313,8 +313,13 @@ function waitForVideoData(
   });
 }
 
-function clearVideoSources(video: HTMLVideoElement): void {
-  video.querySelectorAll("source").forEach((el) => el.remove());
+/**
+ * Reset media binding without removing Lit-managed <source> children.
+ * Imperatively deleting <source> is pointless — the next Lit render recreates
+ * them from card state, and wiping them left Mike with a bare <video>.
+ */
+function resetVideoMedia(video: HTMLVideoElement): void {
+  video.pause();
   video.removeAttribute("src");
   video.srcObject = null;
 }
@@ -385,7 +390,7 @@ async function attachGo2rtcWebRtc(
     });
 
     const remoteStream = new MediaStream();
-    clearVideoSources(video);
+    resetVideoMedia(video);
     video.srcObject = remoteStream;
 
     pc.addEventListener("track", (ev) => {
@@ -504,7 +509,7 @@ async function attachHaWebRtc(
 
     pc = new RTCPeerConnection(clientConfig);
     const remoteStream = new MediaStream();
-    clearVideoSources(video);
+    resetVideoMedia(video);
     video.srcObject = remoteStream;
 
     pc.addEventListener("track", (ev) => {
@@ -641,8 +646,9 @@ export async function collectHttpStreamCandidates(options: {
 }
 
 /**
- * Attach multiple HTTP candidates as <source> children and let the browser choose.
- * Returns null if nothing becomes playable (e.g. Chrome with only HLS sources).
+ * Play from Lit-rendered <source> children when the browser can decode at least
+ * one candidate natively (mp4 always; HLS only on Safari). Does not create or
+ * delete <source> nodes — the card template owns those.
  */
 async function attachMultiSource(
   video: HTMLVideoElement,
@@ -650,39 +656,31 @@ async function attachMultiSource(
 ): Promise<StreamHandle | null> {
   if (!candidates.length) return null;
 
-  // If the only options are HLS and this browser can't play mpegurl, skip
-  // assigning them as <source> — Chrome logs "No decoders for … mpegurl".
   const playable = candidates.filter((c) => {
     if (c.kind === "hls") return canPlayHlsNatively(video);
     return video.canPlayType(c.type) !== "" || c.kind === "mp4";
   });
+  // Chrome + HLS-only: leave <source> tags in the DOM for inspection, but do
+  // not call load()/play() — that triggers "No decoders for … mpegurl".
   if (!playable.length) return null;
 
-  clearVideoSources(video);
-  for (const c of playable) {
-    const source = document.createElement("source");
-    source.src = c.src;
-    source.type = c.type;
-    video.appendChild(source);
-  }
+  resetVideoMedia(video);
   video.load();
   void video.play().catch(() => undefined);
 
   const ok = await waitForVideoData(video);
   if (!ok) {
-    clearVideoSources(video);
-    video.load();
+    resetVideoMedia(video);
     return null;
   }
 
-  const usedHls = playable.some((c) => c.kind === "hls") &&
+  const usedHls =
+    playable.some((c) => c.kind === "hls") &&
     !playable.some((c) => c.kind === "mp4");
   return {
     mode: usedHls ? "hls" : "mse",
     stop: () => {
-      video.pause();
-      clearVideoSources(video);
-      video.load();
+      resetVideoMedia(video);
     },
   };
 }
@@ -694,7 +692,8 @@ async function attachHlsJs(
 ): Promise<StreamHandle | null> {
   if (!hlsUrls.length || !Hls.isSupported()) return null;
 
-  clearVideoSources(video);
+  // Keep Lit <source> children; hls.js binds via MediaSource / blob URL.
+  resetVideoMedia(video);
 
   for (const hlsUrl of hlsUrls) {
     const hls = new Hls({
@@ -728,16 +727,13 @@ async function attachHlsJs(
         mode: "hls",
         stop: () => {
           hls.destroy();
-          video.pause();
-          clearVideoSources(video);
-          video.load();
+          resetVideoMedia(video);
         },
       };
     }
 
     hls.destroy();
-    clearVideoSources(video);
-    video.load();
+    resetVideoMedia(video);
   }
 
   return null;
@@ -758,6 +754,11 @@ export async function attachLiveStream(options: {
   img?: HTMLImageElement | null | undefined;
   cameraEntityId: string | undefined;
   go2rtc?: string;
+  /**
+   * HTTP candidates already rendered as <source> by the Lit card.
+   * When omitted, candidates are collected here (DOM sources may still be absent).
+   */
+  httpCandidates?: HttpStreamCandidate[];
 }): Promise<StreamHandle> {
   const { hass, video, img, cameraEntityId, go2rtc } = options;
 
@@ -766,9 +767,7 @@ export async function attachLiveStream(options: {
   };
   const stopVideo = () => {
     if (!video) return;
-    video.pause();
-    clearVideoSources(video);
-    video.load();
+    resetVideoMedia(video);
   };
 
   if (!video && !img) {
@@ -777,7 +776,7 @@ export async function attachLiveStream(options: {
 
   const wsUrls = resolveGo2rtcWsUrls(hass, go2rtc);
 
-  // 1) WebRTC preferred (not expressible as <source>)
+  // 1) WebRTC preferred (not expressible as <source>; Lit <source>s stay in DOM)
   if (video) {
     for (const wsUrl of wsUrls) {
       const handle = await attachGo2rtcWebRtc(video, wsUrl);
@@ -807,10 +806,12 @@ export async function attachLiveStream(options: {
     }
   }
 
-  // 2) One <video> + multiple <source> children (mp4 / hls)
-  const candidates = video
-    ? await collectHttpStreamCandidates({ hass, cameraEntityId, go2rtc })
-    : [];
+  // 2) Play from Lit <source> children (mp4 / native HLS)
+  const candidates =
+    options.httpCandidates ??
+    (video
+      ? await collectHttpStreamCandidates({ hass, cameraEntityId, go2rtc })
+      : []);
 
   if (video && candidates.length) {
     const multi = await attachMultiSource(video, candidates);

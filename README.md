@@ -61,7 +61,7 @@ Playback is **not** a single `.m3u8` stuck on `<video src>` (that fails on Chrom
 | Step | Path |
 | --- | --- |
 | 1 | **WebRTC** via go2rtc WebSocket and/or HA `camera/webrtc/*` (cannot use `<source>`) |
-| 2 | One `<video>` with multiple **`<source>`** children: go2rtc `stream.mp4` (MSE-friendly progressive), then HLS `.m3u8` — browser picks what it can decode |
+| 2 | One `<video>` with multiple Lit-rendered **`<source>`** children (always in the shadow DOM when HTTP URLs exist): go2rtc `stream.mp4`, then HLS `.m3u8` — browser picks what it can decode |
 | 3 | **hls.js** for HLS URLs when the browser skips mpegurl sources (typical Chrome/desktop) |
 | 4 | **MJPEG** `/api/camera_proxy_stream/…`, then still/poster |
 

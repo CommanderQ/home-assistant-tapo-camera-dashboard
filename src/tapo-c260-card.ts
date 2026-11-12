@@ -26,6 +26,8 @@ import { cardStyles } from "./styles";
 import {
   activeCameraEntity,
   attachLiveStream,
+  collectHttpStreamCandidates,
+  type HttpStreamCandidate,
   type StreamHandle,
   type StreamMode,
 } from "./stream";
@@ -53,6 +55,8 @@ export class TapoC260Card extends LitElement {
   @state() private _preferHd = false;
   @state() private _streamMode: StreamMode = "none";
   @state() private _streamReady = false;
+  /** HTTP stream URLs rendered as real <source> children (Lit-owned). */
+  @state() private _httpSources: HttpStreamCandidate[] = [];
   @state() private _error: string | null = null;
 
   private _hold: HoldRepeater | null = null;
@@ -196,6 +200,7 @@ export class TapoC260Card extends LitElement {
     this._activeStreamEntity = undefined;
     this._streamReady = false;
     this._streamMode = "none";
+    this._httpSources = [];
   }
 
   private async _syncStream(): Promise<void> {
@@ -218,7 +223,16 @@ export class TapoC260Card extends LitElement {
     this._stopStream();
     this._activeStreamEntity = entityId;
 
-    // Wait a frame so video/img refs exist after render.
+    // Collect HTTP candidates first and render them as <source> via Lit so they
+    // survive re-renders (imperative appendChild was wiped by empty <video>).
+    const httpCandidates = await collectHttpStreamCandidates({
+      hass: this.hass,
+      cameraEntityId: entityId,
+      go2rtc: config.go2rtc,
+    });
+    if (generation !== this._attachGeneration) return;
+
+    this._httpSources = httpCandidates;
     await this.updateComplete;
     if (generation !== this._attachGeneration) return;
 
@@ -228,6 +242,7 @@ export class TapoC260Card extends LitElement {
       img: this._imgRef.value,
       cameraEntityId: entityId,
       go2rtc: config.go2rtc,
+      httpCandidates,
     });
 
     if (generation !== this._attachGeneration) {
@@ -348,8 +363,11 @@ export class TapoC260Card extends LitElement {
               style=${styleMap({ display: showVideo ? "block" : "none" })}
               playsinline
               muted
-              autoplay
-            ></video>
+            >
+              ${this._httpSources.map(
+                (s) => html`<source src=${s.src} type=${s.type} />`,
+              )}
+            </video>
             <img
               ${ref(this._imgRef)}
               class="stream-media"
