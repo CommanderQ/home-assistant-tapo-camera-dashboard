@@ -99,15 +99,16 @@ export class TapoC260Card extends LitElement {
   }
 
   public getCardSize(): number {
-    return 6;
+    // Masonry units (~50px). Portrait stream + pad ≈ content height.
+    return 5;
   }
 
   public getGridOptions() {
+    // Sections view: full section width, height follows content (not a fixed row span).
     return {
-      columns: 6,
-      rows: 6,
-      min_columns: 3,
-      min_rows: 4,
+      columns: "full" as const,
+      rows: "auto" as const,
+      min_columns: 6,
     };
   }
 

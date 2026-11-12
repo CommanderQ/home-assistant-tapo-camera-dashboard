@@ -12,10 +12,14 @@ export const cardStyles = css`
     --tapo-amber: #d4a017;
     --tapo-amber-dim: #8a6a12;
     display: block;
+    width: 100%;
+    height: auto;
   }
 
   ha-card,
   .card {
+    width: 100%;
+    height: auto;
     background: linear-gradient(160deg, #32383e, #23272b 60%, #1e2226);
     border: 1px solid #4a525a;
     border-radius: 10px;

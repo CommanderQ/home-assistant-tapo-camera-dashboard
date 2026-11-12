@@ -7,6 +7,7 @@ Home Assistant Lovelace card (`custom:tapo-c260-card`) for a **Tapo C260**: live
 ## Features (v1 scaffold)
 
 - Portrait, stream-dominant layout with circular pad below the feed
+- Sections layout defaults to **full width** and **height: auto** (fit content)
 - Click-to-nudge **and** press-and-hold repeat on pan/tilt
 - Center control = home / calibrate
 - Yaw / pitch readout **on press only**, and only once orientation is known (hidden when unknown)
