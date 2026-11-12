@@ -332,7 +332,8 @@ export class TapoC260Card extends LitElement {
     const title = config.title ?? "Feed · C260";
     const locked = this._privacyLocked;
     const mode = this._streamMode;
-    const showVideo = mode === "webrtc" || mode === "hls";
+    const showVideo =
+      mode === "webrtc" || mode === "mse" || mode === "hls";
     const showImg = mode === "mjpeg" || mode === "image";
     const showPlaceholder = !this._streamReady;
 
@@ -361,8 +362,9 @@ export class TapoC260Card extends LitElement {
                     <div>
                       <strong>Connecting stream…</strong>
                       <span
-                        >Uses HA camera WebRTC / HLS, then MJPEG. Set
-                        <code>camera_hd</code> for HD while controlling PTZ.</span
+                        >WebRTC first, then multi-source MP4/HLS (hls.js on
+                        Chrome). Set <code>camera_hd</code> for HD while
+                        controlling PTZ.</span
                       >
                     </div>
                   </div>

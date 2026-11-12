@@ -11,7 +11,7 @@ Home Assistant Lovelace card (`custom:tapo-c260-card`) for a **Tapo C260**: live
 - Click-to-nudge **and** press-and-hold repeat on pan/tilt
 - Center control = home / calibrate
 - Yaw / pitch readout **on press only**, and only once orientation is known (hidden when unknown)
-- Live camera stream via HA **WebRTC → HLS → MJPEG** (snapshot only as last resort)
+- Live camera stream: **WebRTC → multi-`<source>` MP4/HLS (hls.js on Chrome) → MJPEG** (snapshot last)
 - SD idle stream with **HD upgrade while using PTZ** when `camera_hd` is set
 - Phone-first touch targets (≥44px)
 - Single camera
@@ -38,8 +38,9 @@ type: custom:tapo-c260-card
 camera: camera.living_room_sd
 camera_hd: camera.living_room_hd
 title: Feed · C260
-# Optional: go2rtc stream name, or absolute ws/http URL
+# Optional go2rtc — see “go2rtc URL expectations” below
 # go2rtc: living_room
+# go2rtc: ws://192.168.1.10:1984/api/ws?src=living_room
 ptz:
   up: button.living_room_move_up
   down: button.living_room_move_down
@@ -55,14 +56,29 @@ Entity IDs are instance-specific — the visual editor fills them from the devic
 
 ### Stream behavior
 
-| Mode | When |
+Playback is **not** a single `.m3u8` stuck on `<video src>` (that fails on Chrome with “No decoders for … mpegurl”). Order:
+
+| Step | Path |
 | --- | --- |
-| WebRTC | Tried first for stream-capable cameras (HA go2rtc / WebRTC path) |
-| HLS | **hls.js** on Chrome/Edge/Firefox; native only on Safari (never raw `m3u8` on Chromium) |
-| MJPEG | `/api/camera_proxy_stream/…` live multipart fallback |
-| Snapshot | Last resort only if no live path is available |
+| 1 | **WebRTC** via go2rtc WebSocket and/or HA `camera/webrtc/*` (cannot use `<source>`) |
+| 2 | One `<video>` with multiple **`<source>`** children: go2rtc `stream.mp4` (MSE-friendly progressive), then HLS `.m3u8` — browser picks what it can decode |
+| 3 | **hls.js** for HLS URLs when the browser skips mpegurl sources (typical Chrome/desktop) |
+| 4 | **MJPEG** `/api/camera_proxy_stream/…`, then still/poster |
 
 `camera` is the idle/default feed (usually SD). When `camera_hd` is set, the card switches to HD while you press the PTZ pad / home, and holds HD briefly afterward.
+
+### go2rtc URL expectations
+
+The optional `go2rtc` key stays schema-compatible:
+
+| Value | Meaning |
+| --- | --- |
+| Stream name (`living_room`) | Resolved against HA as `/api/webrtc/ws?src=…` (AlexxIT WebRTC) and `/api/ws?src=…` |
+| `ws(s)://host:1984/api/ws?src=name` | Direct go2rtc WebSocket (preferred for LAN go2rtc) |
+| `http(s)://host:1984/api/ws?src=name` | Same; converted to `ws(s)` for signaling; HTTP `…/api/stream.mp4` and `…/api/stream.m3u8` are added as `<source>` candidates |
+| Omitted | HA camera entity WebRTC / HLS only |
+
+Ensure go2rtc knows the same stream name you put in `go2rtc` (or in the absolute URL `src=`).
 
 ### Optional keys
 
@@ -70,7 +86,7 @@ Entity IDs are instance-specific — the visual editor fills them from the devic
 | --- | --- |
 | `device` | `tapo_control` device id — auto-associates entities |
 | `camera_hd` | HD entity used while controlling PTZ |
-| `go2rtc` | Optional stream name or absolute URL (otherwise HA camera stream) |
+| `go2rtc` | Stream name or absolute go2rtc `/api/ws` URL (see above) |
 | `title` | Stream chrome label (default `Feed · C260` or device name) |
 | `hold_interval_ms` | Hold-to-repeat interval (default `350`) |
 | `privacy` | Privacy switch — disables the pad when `on` |

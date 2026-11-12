@@ -47,7 +47,7 @@ const EDITOR_SCHEMA: HaFormSchema[] = [
     name: "go2rtc",
     label: "go2rtc stream (optional)",
     helper:
-      "Stream name or absolute ws/http URL. Leave empty to use the HA camera stream (WebRTC / HLS / MJPEG).",
+      "go2rtc stream name, or absolute ws/http URL to /api/ws?src=… (or /api/webrtc/ws). Empty = HA camera WebRTC / multi-source MP4+HLS.",
     selector: { text: {} },
   },
   {
