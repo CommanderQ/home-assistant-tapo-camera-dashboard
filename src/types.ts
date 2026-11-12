@@ -1,6 +1,8 @@
 /** Lovelace card config for custom:tapo-c260-card */
 export interface TapoC260CardConfig {
   type?: string;
+  /** Optional tapo_control device id — editor auto-fills entity fields from it. */
+  device?: string;
   /** SD / idle camera entity (preferred default stream). */
   camera: string;
   /** Optional HD camera entity upgraded on interaction. */
@@ -32,13 +34,39 @@ export interface HassEntity {
   attributes: Record<string, unknown>;
 }
 
+/** Entity registry row as exposed on `hass.entities`. */
+export interface HassEntityRegistryEntry {
+  entity_id: string;
+  device_id?: string | null;
+  platform?: string;
+  unique_id?: string;
+  name?: string | null;
+  original_name?: string | null;
+}
+
+/** Device registry row as exposed on `hass.devices`. */
+export interface HassDeviceRegistryEntry {
+  id: string;
+  name?: string | null;
+  name_by_user?: string | null;
+  manufacturer?: string | null;
+  model?: string | null;
+  config_entries?: string[];
+}
+
 export interface HomeAssistant {
   states: Record<string, HassEntity>;
+  /** Entity registry map (entity_id → entry) when available in Lovelace. */
+  entities?: Record<string, HassEntityRegistryEntry>;
+  /** Device registry map (device_id → entry) when available in Lovelace. */
+  devices?: Record<string, HassDeviceRegistryEntry>;
   callService: (
     domain: string,
     service: string,
     data?: Record<string, unknown>,
   ) => Promise<unknown> | void;
+  callWS?: <T = unknown>(message: Record<string, unknown>) => Promise<T>;
+  hassUrl?: (path?: string) => string;
   connection?: {
     subscribeMessage?: (
       callback: (msg: unknown) => void,

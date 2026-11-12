@@ -10,10 +10,11 @@ Home Assistant Lovelace card (`custom:tapo-c260-card`) for a **Tapo C260**: live
 - Click-to-nudge **and** press-and-hold repeat on pan/tilt
 - Center control = home / calibrate
 - Yaw / pitch readout **on press only**, and only once orientation is known (hidden when unknown)
-- go2rtc / WebRTC stream wiring with an industrial **placeholder** when unavailable
+- Live camera stream via HA **WebRTC → HLS → MJPEG** (snapshot only as last resort)
+- SD idle stream with **HD upgrade while using PTZ** when `camera_hd` is set
 - Phone-first touch targets (≥44px)
 - Single camera
-- Lovelace visual editor (`ha-form`) for all card config fields
+- Lovelace visual editor: pick the **Tapo device** and entities auto-fill
 - Local Vite demo with mock `hass` (no HA install)
 
 ## Lovelace config
@@ -22,16 +23,17 @@ Home Assistant Lovelace card (`custom:tapo-c260-card`) for a **Tapo C260**: live
 
 After the card resource is loaded, use the dashboard UI:
 
-1. Edit a dashboard → **Add card** → search **Tapo C260 Camera Card** (or pick it from custom cards).
-2. Configure entities in the form (camera, PTZ buttons, optional HD / go2rtc / privacy / angle / calibrate / preset, hold interval).
-3. Save — no YAML required for the fields the card already supports.
-
-You can still switch to **Show code editor** for the same schema.
+1. Edit a dashboard → **Add card** → search **Tapo C260 Camera Card**.
+2. Select your **Tapo camera device** (from `tapo_control`) — camera SD/HD, PTZ buttons, angle, calibrate, preset, and privacy fill in automatically.
+3. Optionally set title / go2rtc / hold interval. Open **Entity overrides** only if a mapping needs a tweak.
+4. Save.
 
 ### YAML
 
 ```yaml
 type: custom:tapo-c260-card
+# Preferred: set device and let the card/editor resolve entities
+# device: <tapo_control device id>
 camera: camera.living_room_sd
 camera_hd: camera.living_room_hd
 title: Feed · C260
@@ -48,15 +50,27 @@ ptz:
 privacy: switch.living_room_privacy
 ```
 
-Entity IDs are instance-specific — copy them from your `tapo_control` device page.
+Entity IDs are instance-specific — the visual editor fills them from the device. Manual YAML can still paste IDs from the `tapo_control` device page.
+
+### Stream behavior
+
+| Mode | When |
+| --- | --- |
+| WebRTC | Camera reports `frontend_stream_type: webrtc` (HA go2rtc path) |
+| HLS | Native HLS where the browser supports it (e.g. Safari) |
+| MJPEG | `/api/camera_proxy_stream/…` live multipart fallback |
+| Snapshot | Last resort only if no live path is available |
+
+`camera` is the idle/default feed (usually SD). When `camera_hd` is set, the card switches to HD while you press the PTZ pad / home, and holds HD briefly afterward.
 
 ### Optional keys
 
 | Key | Purpose |
 | --- | --- |
-| `camera_hd` | HD entity for a future idle→HD upgrade path |
-| `go2rtc` | Stream name (resolved via `/api/webrtc/ws?src=…`) or absolute URL |
-| `title` | Stream chrome label (default `Feed · C260`) |
+| `device` | `tapo_control` device id — auto-associates entities |
+| `camera_hd` | HD entity used while controlling PTZ |
+| `go2rtc` | Optional stream name or absolute URL (otherwise HA camera stream) |
+| `title` | Stream chrome label (default `Feed · C260` or device name) |
 | `hold_interval_ms` | Hold-to-repeat interval (default `350`) |
 | `privacy` | Privacy switch — disables the pad when `on` |
 | `ptz.preset` | Optional preset select entity |

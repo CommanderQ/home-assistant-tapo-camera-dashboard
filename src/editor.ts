@@ -1,5 +1,6 @@
 import { LitElement, html, nothing, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { resolveConfigFromDevice } from "./device";
 import type { HomeAssistant, TapoC260CardConfig } from "./types";
 
 /** Minimal ha-form schema shape used by the Lovelace visual editor. */
@@ -24,91 +25,30 @@ type HaFormSchema =
 
 const EDITOR_SCHEMA: HaFormSchema[] = [
   {
-    name: "camera",
+    name: "device",
     required: true,
-    label: "Camera (SD / idle)",
-    helper: "Preferred default stream entity from tapo_control.",
-    selector: { entity: { domain: "camera" } },
-  },
-  {
-    name: "camera_hd",
-    label: "Camera HD (optional)",
-    helper: "Optional HD entity for idle→HD upgrade.",
-    selector: { entity: { domain: "camera" } },
+    label: "Tapo camera device",
+    helper:
+      "Pick your C260 (tapo_control). Camera, PTZ, privacy, and related entities fill in automatically.",
+    selector: {
+      device: {
+        filter: [{ integration: "tapo_control" }],
+        entity: [{ domain: "camera" }],
+      },
+    },
   },
   {
     name: "title",
     label: "Title",
-    helper: "Stream chrome label (default: Feed · C260).",
+    helper: "Stream chrome label (defaults to the device name).",
     selector: { text: {} },
   },
   {
     name: "go2rtc",
-    label: "go2rtc stream",
-    helper: "Stream name (resolved via /api/webrtc/ws?src=…) or absolute ws/http URL.",
+    label: "go2rtc stream (optional)",
+    helper:
+      "Stream name or absolute ws/http URL. Leave empty to use the HA camera stream (WebRTC / HLS / MJPEG).",
     selector: { text: {} },
-  },
-  {
-    name: "ptz",
-    type: "expandable",
-    title: "PTZ controls",
-    expanded: true,
-    schema: [
-      {
-        type: "grid",
-        name: "",
-        schema: [
-          {
-            name: "up",
-            required: true,
-            label: "Move up",
-            selector: { entity: { domain: "button" } },
-          },
-          {
-            name: "down",
-            required: true,
-            label: "Move down",
-            selector: { entity: { domain: "button" } },
-          },
-          {
-            name: "left",
-            required: true,
-            label: "Move left",
-            selector: { entity: { domain: "button" } },
-          },
-          {
-            name: "right",
-            required: true,
-            label: "Move right",
-            selector: { entity: { domain: "button" } },
-          },
-        ],
-      },
-      {
-        name: "angle",
-        label: "Movement angle",
-        helper: "number.*_movement_angle — degrees per nudge.",
-        selector: { entity: { domain: "number" } },
-      },
-      {
-        name: "calibrate",
-        label: "Calibrate / home",
-        helper: "Center pad control presses this button.",
-        selector: { entity: { domain: "button" } },
-      },
-      {
-        name: "preset",
-        label: "Move to preset",
-        helper: "Optional select.*_move_to_preset entity.",
-        selector: { entity: { domain: "select" } },
-      },
-    ],
-  },
-  {
-    name: "privacy",
-    label: "Privacy switch",
-    helper: "Disables the PTZ pad when on.",
-    selector: { entity: { domain: "switch" } },
   },
   {
     name: "hold_interval_ms",
@@ -123,6 +63,90 @@ const EDITOR_SCHEMA: HaFormSchema[] = [
         unit_of_measurement: "ms",
       },
     },
+  },
+  {
+    name: "entities",
+    type: "expandable",
+    title: "Entity overrides",
+    flatten: true,
+    expanded: false,
+    schema: [
+      {
+        name: "camera",
+        required: true,
+        label: "Camera (SD / idle)",
+        helper: "Default stream while idle.",
+        selector: { entity: { domain: "camera" } },
+      },
+      {
+        name: "camera_hd",
+        label: "Camera HD",
+        helper: "Used for live view while you are controlling PTZ.",
+        selector: { entity: { domain: "camera" } },
+      },
+      {
+        name: "privacy",
+        label: "Privacy switch",
+        helper: "Disables the PTZ pad when on.",
+        selector: { entity: { domain: "switch" } },
+      },
+      {
+        name: "ptz",
+        type: "expandable",
+        title: "PTZ controls",
+        expanded: true,
+        schema: [
+          {
+            type: "grid",
+            name: "",
+            schema: [
+              {
+                name: "up",
+                required: true,
+                label: "Move up",
+                selector: { entity: { domain: "button" } },
+              },
+              {
+                name: "down",
+                required: true,
+                label: "Move down",
+                selector: { entity: { domain: "button" } },
+              },
+              {
+                name: "left",
+                required: true,
+                label: "Move left",
+                selector: { entity: { domain: "button" } },
+              },
+              {
+                name: "right",
+                required: true,
+                label: "Move right",
+                selector: { entity: { domain: "button" } },
+              },
+            ],
+          },
+          {
+            name: "angle",
+            label: "Movement angle",
+            helper: "number.*_movement_angle — degrees per nudge.",
+            selector: { entity: { domain: "number" } },
+          },
+          {
+            name: "calibrate",
+            label: "Calibrate / home",
+            helper: "Center pad control presses this button.",
+            selector: { entity: { domain: "button" } },
+          },
+          {
+            name: "preset",
+            label: "Move to preset",
+            helper: "Optional select.*_move_to_preset entity.",
+            selector: { entity: { domain: "select" } },
+          },
+        ],
+      },
+    ],
   },
 ];
 
@@ -161,6 +185,42 @@ function ensureHaFormLoaded(): Promise<void> {
   return haFormLoadPromise;
 }
 
+function scrubConfig(config: TapoC260CardConfig): TapoC260CardConfig {
+  const next: TapoC260CardConfig = {
+    ...config,
+    ptz: { ...(config.ptz ?? { up: "", down: "", left: "", right: "" }) },
+  };
+
+  for (const key of [
+    "device",
+    "camera_hd",
+    "title",
+    "go2rtc",
+    "privacy",
+  ] as const) {
+    const v = next[key];
+    if (v === "" || v === undefined || v === null) {
+      delete next[key];
+    }
+  }
+  for (const key of ["angle", "calibrate", "preset"] as const) {
+    const v = next.ptz[key];
+    if (v === "" || v === undefined || v === null) {
+      delete next.ptz[key];
+    }
+  }
+  if (
+    next.hold_interval_ms === undefined ||
+    next.hold_interval_ms === null ||
+    Number.isNaN(Number(next.hold_interval_ms))
+  ) {
+    delete next.hold_interval_ms;
+  } else {
+    next.hold_interval_ms = Number(next.hold_interval_ms);
+  }
+  return next;
+}
+
 @customElement("tapo-c260-card-editor")
 export class TapoC260CardEditor extends LitElement {
   static styles = css`
@@ -177,7 +237,10 @@ export class TapoC260CardEditor extends LitElement {
   @state() private _formReady = false;
 
   public setConfig(config: TapoC260CardConfig): void {
-    this._config = { ...config, ptz: { ...config.ptz } };
+    this._config = {
+      ...config,
+      ptz: { ...(config.ptz ?? { up: "", down: "", left: "", right: "" }) },
+    };
   }
 
   connectedCallback(): void {
@@ -204,6 +267,10 @@ export class TapoC260CardEditor extends LitElement {
         .computeHelper=${this._computeHelper}
         @value-changed=${this._valueChanged}
       ></ha-form>
+      <p class="hint">
+        Select the Tapo device to auto-fill camera / PTZ / privacy. Open Entity
+        overrides only if you need to tweak associations.
+      </p>
     `;
   }
 
@@ -223,41 +290,28 @@ export class TapoC260CardEditor extends LitElement {
     const value = ev.detail?.value;
     if (!value) return;
 
-    const next: TapoC260CardConfig = {
+    let next: TapoC260CardConfig = {
       ...value,
       ptz: {
-        ...(value.ptz ?? this._config.ptz),
+        ...(value.ptz ?? this._config.ptz ?? { up: "", down: "", left: "", right: "" }),
       },
     };
 
-    // Drop empty optional strings so YAML stays clean.
-    for (const key of [
-      "camera_hd",
-      "title",
-      "go2rtc",
-      "privacy",
-    ] as const) {
-      const v = next[key];
-      if (v === "" || v === undefined || v === null) {
-        delete next[key];
-      }
-    }
-    for (const key of ["angle", "calibrate", "preset"] as const) {
-      const v = next.ptz[key];
-      if (v === "" || v === undefined || v === null) {
-        delete next.ptz[key];
-      }
-    }
-    if (
-      next.hold_interval_ms === undefined ||
-      next.hold_interval_ms === null ||
-      Number.isNaN(Number(next.hold_interval_ms))
-    ) {
-      delete next.hold_interval_ms;
-    } else {
-      next.hold_interval_ms = Number(next.hold_interval_ms);
+    const deviceChanged =
+      !!next.device && next.device !== this._config.device;
+    if (deviceChanged && next.device) {
+      const resolved = resolveConfigFromDevice(this.hass, next.device, next);
+      next = {
+        ...next,
+        ...resolved,
+        ptz: {
+          ...next.ptz,
+          ...(resolved.ptz as TapoC260CardConfig["ptz"]),
+        },
+      } as TapoC260CardConfig;
     }
 
+    next = scrubConfig(next);
     this._config = next;
     this.dispatchEvent(
       new CustomEvent("config-changed", {
