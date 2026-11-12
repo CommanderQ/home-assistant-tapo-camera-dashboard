@@ -56,17 +56,53 @@ Do **not** run the official `tplink` integration and `tapo_control` on the same 
 
 PTZ uses current `tapo_control` surfaces only: `button.press` on move / calibrate entities, optional `number.*_movement_angle`, optional `switch.*_privacy`. Legacy `tapo_control.ptz` is not used.
 
-## Install (manual / early)
+## Install
 
-Until a HACS release asset is published:
+This is a Lovelace **frontend** card (Lit bundle + `hacs.json`). Install via HACS as a custom repository when a release asset is available, or copy the built module manually.
 
-1. Build the card: `npm ci && npm run build`
-2. Copy `dist/tapo-c260-card.js` to `config/www/tapo-c260-card.js`
-3. **Settings → Dashboards → Resources → Add**  
-   URL: `/local/tapo-c260-card.js` · Type: JavaScript Module
-4. Add the card YAML above to a dashboard
+### Option A — HACS (custom repository)
 
-`hacs.json` is included for a future Marketplace / HACS plugin listing (`filename`: `tapo-c260-card.js`).
+1. Install [HACS](https://hacs.xyz/) if you do not already have it.
+2. Open **HACS → Frontend** (three-dot menu) → **Custom repositories**.
+3. Add this repository:
+   - **Repository:** `https://github.com/CommanderQ/home-assistant-tapo-camera-dashboard`
+   - **Category:** **Lovelace**
+4. Find **Tapo C260 Camera Card** in HACS → Frontend → download / install it.
+5. When prompted, reload the frontend (or restart Home Assistant).
+6. Confirm a dashboard resource exists (**Settings → Dashboards → Resources**):
+   - URL similar to `/hacsfiles/home-assistant-tapo-camera-dashboard/tapo-c260-card.js`
+   - Type: **JavaScript Module**  
+   HACS usually adds this for you; add it manually only if it is missing.
+7. Add the card YAML from [Lovelace config](#lovelace-config) to a dashboard.
+
+`hacs.json` names the frontend file as `tapo-c260-card.js`. HACS serves that file from a **GitHub Release** asset with the same filename. If no release is published yet, use Option B (manual) after building locally, or wait for a release that includes `tapo-c260-card.js`.
+
+### Option B — Manual resource
+
+Use this when developing from source or when no HACS release asset exists yet.
+
+1. Clone the repo and build the card:
+
+   ```bash
+   git clone https://github.com/CommanderQ/home-assistant-tapo-camera-dashboard.git
+   cd home-assistant-tapo-camera-dashboard
+   npm ci
+   npm run build
+   ```
+
+2. Copy the bundle into Home Assistant’s www folder (create `www` if needed):
+
+   ```bash
+   # Example paths — adjust for your HA config directory
+   cp dist/tapo-c260-card.js /config/www/tapo-c260-card.js
+   ```
+
+3. **Settings → Dashboards → Resources → Add resource**
+   - **URL:** `/local/tapo-c260-card.js`
+   - **Resource type:** JavaScript Module
+4. Reload the browser (hard refresh) and add the card YAML from [Lovelace config](#lovelace-config).
+
+Updating later: rebuild, replace `config/www/tapo-c260-card.js`, then hard-refresh the dashboard.
 
 ## Local demo (no Home Assistant)
 
