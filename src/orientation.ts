@@ -49,5 +49,6 @@ export function formatAngles(o: Orientation): string {
 }
 
 export function cameraTransform(o: Orientation): string {
-  return `rotateX(${-o.pitch}deg) rotateY(${o.yaw}deg)`;
+  // Positive pitch (Up) → positive rotateX so the lens tip rises about the base joint.
+  return `rotateX(${o.pitch}deg) rotateY(${o.yaw}deg)`;
 }
