@@ -4,7 +4,7 @@ import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
 import { styleMap } from "lit/directives/style-map.js";
 
-import { cameraSvg } from "./camera-svg";
+import { camera3d } from "./camera-3d";
 import {
   applyNudge,
   cameraTransform,
@@ -306,7 +306,7 @@ export class TapoC260Card extends LitElement {
                         transform: cameraTransform(this._orientation),
                       })}
                     >
-                      ${cameraSvg()}
+                      ${camera3d()}
                     </div>
                   </button>
                 </div>

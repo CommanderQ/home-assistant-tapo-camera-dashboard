@@ -259,9 +259,11 @@ export const cardStyles = css`
     position: absolute;
     inset: 52px;
     perspective: 520px;
+    perspective-origin: 50% 45%;
     display: grid;
     place-items: center;
     z-index: 1;
+    transform-style: preserve-3d;
   }
 
   .home-hit {
@@ -280,6 +282,8 @@ export const cardStyles = css`
     place-items: center;
     touch-action: manipulation;
     z-index: 2;
+    /* Keep extruded faces in true 3D through the hit target. */
+    transform-style: preserve-3d;
   }
 
   .home-hit:disabled {
@@ -295,15 +299,289 @@ export const cardStyles = css`
   .cam3d {
     width: 88px;
     height: 88px;
+    position: relative;
     transform-style: preserve-3d;
     transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
     pointer-events: none;
   }
 
-  .cam3d svg {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.55));
+  .cam-rig {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    /* Slight presentation pitch so face-on still shows thickness/top. */
+    transform: translateY(4px) rotateX(14deg);
+  }
+
+  .cam-shadow {
+    position: absolute;
+    left: 50%;
+    top: 78%;
+    width: 52px;
+    height: 16px;
+    margin-left: -26px;
+    border-radius: 50%;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(0, 0, 0, 0.55) 0%,
+      rgba(0, 0, 0, 0) 70%
+    );
+    transform: translateZ(-22px) rotateX(90deg);
+    transform-style: preserve-3d;
+  }
+
+  .cam-base,
+  .cam-neck,
+  .cam-body {
+    position: absolute;
+    left: 50%;
+    transform-style: preserve-3d;
+  }
+
+  .cam-base {
+    width: 42px;
+    height: 12px;
+    margin-left: -21px;
+    top: 70%;
+  }
+
+  .cam-neck {
+    width: 12px;
+    height: 18px;
+    margin-left: -6px;
+    top: 52%;
+  }
+
+  .cam-body {
+    width: 56px;
+    height: 34px;
+    margin-left: -28px;
+    top: 18%;
+  }
+
+  .face {
+    position: absolute;
+    left: 0;
+    top: 0;
+    box-sizing: border-box;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border: 1px solid rgba(122, 132, 142, 0.55);
+  }
+
+  /* Shared metal fills */
+  .cam-base .face,
+  .cam-neck .face {
+    background: linear-gradient(160deg, #6a737c, #3a4046 55%, #23272b);
+  }
+
+  .cam-body .face {
+    background: linear-gradient(160deg, #8a939c, #4a525a 45%, #2a2e32);
+  }
+
+  .cam-body .face.left,
+  .cam-body .face.right {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(212, 160, 23, 0.22) 0 2px,
+        transparent 2px
+      ),
+      linear-gradient(180deg, #5a636c, #2e343a 60%, #1e2226);
+  }
+
+  .cam-body .face.back {
+    background: linear-gradient(160deg, #5a636c, #2a2e32 60%, #1a1c1e);
+  }
+
+  .cam-body .face.top {
+    background: linear-gradient(90deg, #6a737c, #4a525a 50%, #3a4046);
+  }
+
+  .cam-body .face.bottom {
+    background: linear-gradient(90deg, #2a2e32, #1a1c1e);
+  }
+
+  /* Base box: 42 × 12 × 34 */
+  .cam-base .face.front,
+  .cam-base .face.back {
+    width: 42px;
+    height: 12px;
+  }
+  .cam-base .face.front {
+    transform: translateZ(17px);
+  }
+  .cam-base .face.back {
+    transform: rotateY(180deg) translateZ(17px);
+  }
+  .cam-base .face.left,
+  .cam-base .face.right {
+    width: 34px;
+    height: 12px;
+    left: 4px;
+  }
+  .cam-base .face.left {
+    transform: rotateY(-90deg) translateZ(21px);
+  }
+  .cam-base .face.right {
+    transform: rotateY(90deg) translateZ(21px);
+  }
+  .cam-base .face.top,
+  .cam-base .face.bottom {
+    width: 42px;
+    height: 34px;
+    top: -11px;
+  }
+  .cam-base .face.top {
+    transform: rotateX(90deg) translateZ(6px);
+    background: linear-gradient(180deg, #5a636c, #3a4046);
+  }
+  .cam-base .face.bottom {
+    transform: rotateX(-90deg) translateZ(6px);
+  }
+
+  /* Neck box: 12 × 18 × 16 */
+  .cam-neck .face.front,
+  .cam-neck .face.back {
+    width: 12px;
+    height: 18px;
+  }
+  .cam-neck .face.front {
+    transform: translateZ(8px);
+  }
+  .cam-neck .face.back {
+    transform: rotateY(180deg) translateZ(8px);
+  }
+  .cam-neck .face.left,
+  .cam-neck .face.right {
+    width: 16px;
+    height: 18px;
+    left: -2px;
+  }
+  .cam-neck .face.left {
+    transform: rotateY(-90deg) translateZ(6px);
+  }
+  .cam-neck .face.right {
+    transform: rotateY(90deg) translateZ(6px);
+  }
+  .cam-neck .face.top,
+  .cam-neck .face.bottom {
+    width: 12px;
+    height: 16px;
+    top: 1px;
+  }
+  .cam-neck .face.top {
+    transform: rotateX(90deg) translateZ(9px);
+  }
+  .cam-neck .face.bottom {
+    transform: rotateX(-90deg) translateZ(9px);
+  }
+
+  /* Body box: 56 × 34 × 36 (deeper extrusion so edge-on stays chunky) */
+  .cam-body .face.front,
+  .cam-body .face.back {
+    width: 56px;
+    height: 34px;
+  }
+  .cam-body .face.front {
+    transform: translateZ(18px);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  .cam-body .face.back {
+    transform: rotateY(180deg) translateZ(18px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .cam-body .face.left,
+  .cam-body .face.right {
+    width: 36px;
+    height: 34px;
+    left: 10px;
+  }
+  .cam-body .face.left {
+    transform: rotateY(-90deg) translateZ(28px);
+  }
+  .cam-body .face.right {
+    transform: rotateY(90deg) translateZ(28px);
+  }
+  .cam-body .face.top,
+  .cam-body .face.bottom {
+    width: 56px;
+    height: 36px;
+    top: -1px;
+  }
+  .cam-body .face.top {
+    transform: rotateX(90deg) translateZ(17px);
+    display: grid;
+    place-items: start center;
+    padding-top: 4px;
+  }
+  .cam-body .face.bottom {
+    transform: rotateX(-90deg) translateZ(17px);
+  }
+
+  .led {
+    position: absolute;
+    top: 5px;
+    left: 6px;
+    width: 7px;
+    height: 5px;
+    border-radius: 1px;
+    background: var(--tapo-amber);
+    box-shadow: 0 0 4px rgba(212, 160, 23, 0.55);
+  }
+
+  .lens-bezel {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #1a1c1e;
+    border: 1px solid #6a737c;
+    box-shadow: inset 0 0 0 2px #2a2e32;
+  }
+
+  .lens {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 35% 30%,
+      #7ec8e3 0%,
+      #1a3040 45%,
+      #05080c 100%
+    );
+    box-shadow: inset 0 0 0 1px rgba(106, 115, 124, 0.6);
+  }
+
+  .glint {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.45);
+    transform: translate(-5px, -5px);
+  }
+
+  .vent {
+    width: 3px;
+    height: 14px;
+    border-radius: 1px;
+    background: #15181b;
+    border: 1px solid #4a525a;
+  }
+
+  .hood {
+    width: 28px;
+    height: 8px;
+    border-radius: 2px 2px 0 0;
+    background: linear-gradient(180deg, #3a4046, #2a2e32);
+    border: 1px solid #5a636c;
+    border-bottom: 0;
   }
 
   .hint {
