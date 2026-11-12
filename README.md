@@ -57,8 +57,8 @@ Entity IDs are instance-specific — the visual editor fills them from the devic
 
 | Mode | When |
 | --- | --- |
-| WebRTC | Camera reports `frontend_stream_type: webrtc` (HA go2rtc path) |
-| HLS | Native HLS where the browser supports it (e.g. Safari) |
+| WebRTC | Tried first for stream-capable cameras (HA go2rtc / WebRTC path) |
+| HLS | **hls.js** on Chrome/Edge/Firefox; native only on Safari (never raw `m3u8` on Chromium) |
 | MJPEG | `/api/camera_proxy_stream/…` live multipart fallback |
 | Snapshot | Last resort only if no live path is available |
 

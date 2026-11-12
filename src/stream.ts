@@ -1,3 +1,5 @@
+// Light build is enough for single-camera live playlists and keeps the HACS bundle smaller.
+import Hls from "hls.js/light";
 import type { HassEntity, HomeAssistant } from "./types";
 
 export type StreamMode = "webrtc" | "hls" | "mjpeg" | "image" | "none";
@@ -131,7 +133,7 @@ export function activeCameraEntity(
 }
 
 /**
- * Resolve how to display live video for a camera entity / optional go2rtc override.
+ * Resolve preferred live mode for a camera entity / optional go2rtc override.
  * Prefers live modes over still snapshots.
  */
 export function resolveStream(
@@ -166,6 +168,7 @@ export function resolveStream(
   if (streamType === "webrtc" && typeof RTCPeerConnection !== "undefined") {
     return { mode: "webrtc", entityId: cameraEntityId };
   }
+  // STREAM feature or HLS type → try live (WebRTC/HLS/MJPEG), not snapshot.
   if (streamType === "hls" || supportsStream(entity)) {
     return { mode: "hls", entityId: cameraEntityId };
   }
@@ -211,9 +214,17 @@ async function fetchHlsUrl(
   return null;
 }
 
-function canPlayHlsNatively(video: HTMLVideoElement): boolean {
+/**
+ * Chrome/Edge often report canPlayType("…mpegurl") as "maybe" but cannot decode
+ * HLS natively — that produces the console error the user saw. Prefer hls.js;
+ * only use the video element alone when MSE/hls.js is unavailable (typical Safari).
+ */
+function canUseNativeHlsOnly(video: HTMLVideoElement): boolean {
+  if (Hls.isSupported()) return false;
   return video.canPlayType("application/vnd.apple.mpegurl") !== "";
 }
+
+const WEBRTC_READY_MS = 8000;
 
 async function attachHaWebRtc(
   hass: HomeAssistant,
@@ -259,16 +270,31 @@ async function attachHaWebRtc(
         if (cfg?.configuration) clientConfig = cfg.configuration;
       }
     } catch {
-      /* optional */
+      /* Camera may be HLS-only; WebRTC config fails — try offer anyway / fall through. */
     }
 
     pc = new RTCPeerConnection(clientConfig);
     const remoteStream = new MediaStream();
     video.srcObject = remoteStream;
 
-    pc.addEventListener("track", (ev) => {
-      remoteStream.addTrack(ev.track);
-      void video.play().catch(() => undefined);
+    const gotTrack = new Promise<boolean>((resolve) => {
+      const timer = window.setTimeout(() => resolve(false), WEBRTC_READY_MS);
+      pc!.addEventListener("track", (ev) => {
+        remoteStream.addTrack(ev.track);
+        void video.play().catch(() => undefined);
+        window.clearTimeout(timer);
+        resolve(true);
+      });
+      pc!.addEventListener("connectionstatechange", () => {
+        if (
+          pc?.connectionState === "failed" ||
+          pc?.connectionState === "closed" ||
+          pc?.connectionState === "disconnected"
+        ) {
+          window.clearTimeout(timer);
+          resolve(false);
+        }
+      });
     });
 
     pc.addEventListener("icecandidate", (ev) => {
@@ -296,6 +322,8 @@ async function attachHaWebRtc(
           session_id?: string;
           answer?: string;
           candidate?: RTCIceCandidateInit;
+          code?: string;
+          message?: string;
         };
         if (!pc) return;
         if (msg.type === "session" && msg.session_id) {
@@ -321,6 +349,10 @@ async function attachHaWebRtc(
         }
         if (msg.type === "candidate" && msg.candidate) {
           void pc.addIceCandidate(msg.candidate).catch(() => undefined);
+          return;
+        }
+        if (msg.type === "error") {
+          cleanup();
         }
       },
       {
@@ -330,11 +362,81 @@ async function attachHaWebRtc(
       },
     );
 
+    const ready = await gotTrack;
+    if (!ready) {
+      cleanup();
+      return null;
+    }
+
     return { mode: "webrtc", stop: cleanup };
   } catch {
     cleanup();
     return null;
   }
+}
+
+function attachHlsJs(
+  video: HTMLVideoElement,
+  url: string,
+): StreamHandle | null {
+  if (!Hls.isSupported()) return null;
+
+  const hls = new Hls({
+    enableWorker: true,
+    lowLatencyMode: true,
+    backBufferLength: 30,
+  });
+
+  const stop = () => {
+    try {
+      hls.destroy();
+    } catch {
+      /* ignore */
+    }
+    video.pause();
+    video.removeAttribute("src");
+    video.srcObject = null;
+    video.load();
+  };
+
+  hls.on(Hls.Events.ERROR, (_event: unknown, data: { fatal: boolean; type: string }) => {
+    if (!data.fatal) return;
+    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+      hls.startLoad();
+      return;
+    }
+    if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+      hls.recoverMediaError();
+      return;
+    }
+    stop();
+  });
+
+  hls.loadSource(url);
+  hls.attachMedia(video);
+  hls.on(Hls.Events.MANIFEST_PARSED, () => {
+    void video.play().catch(() => undefined);
+  });
+
+  return { mode: "hls", stop };
+}
+
+function attachNativeHls(
+  video: HTMLVideoElement,
+  url: string,
+): StreamHandle {
+  video.srcObject = null;
+  video.src = url;
+  void video.play().catch(() => undefined);
+  return {
+    mode: "hls",
+    stop: () => {
+      video.pause();
+      video.removeAttribute("src");
+      video.srcObject = null;
+      video.load();
+    },
+  };
 }
 
 /**
@@ -368,37 +470,41 @@ export async function attachLiveStream(options: {
     return { mode: "none", stop: () => undefined };
   }
 
-  // Prefer HA camera WebRTC (also covers go2rtc-backed camera entities).
-  if (
-    video &&
-    cameraEntityId &&
-    typeof RTCPeerConnection !== "undefined" &&
-    (resolved.mode === "webrtc" || !!go2rtc)
-  ) {
+  const entity = cameraEntity(hass, cameraEntityId);
+  const shouldTryLive =
+    resolved.mode === "webrtc" ||
+    resolved.mode === "hls" ||
+    !!go2rtc ||
+    supportsStream(entity);
+
+  // 1) WebRTC — try for any live-capable camera (HA go2rtc can serve HLS cams too).
+  if (video && shouldTryLive && typeof RTCPeerConnection !== "undefined") {
     const handle = await attachHaWebRtc(hass, video, cameraEntityId);
     if (handle) {
       stopImg();
       return handle;
     }
-    // Fall through to HLS / MJPEG
   }
 
-  if ((resolved.mode === "hls" || resolved.mode === "webrtc") && video) {
+  // 2) HLS via hls.js (Chrome/Edge/Firefox) or native Safari only.
+  if (video && shouldTryLive) {
     const hlsUrl = await fetchHlsUrl(hass, cameraEntityId);
-    if (hlsUrl && canPlayHlsNatively(video)) {
-      stopImg();
-      video.srcObject = null;
-      video.src = hlsUrl;
-      void video.play().catch(() => undefined);
-      return {
-        mode: "hls",
-        stop: () => {
-          stopVideo();
-        },
-      };
+    if (hlsUrl) {
+      const viaJs = attachHlsJs(video, hlsUrl);
+      if (viaJs) {
+        stopImg();
+        return viaJs;
+      }
+      if (canUseNativeHlsOnly(video)) {
+        stopImg();
+        return attachNativeHls(video, hlsUrl);
+      }
+      // Do NOT assign m3u8 to video.src on Chromium — causes:
+      // "No decoders for requested formats: application/vnd.apple.mpegurl"
     }
   }
 
+  // 3) MJPEG live multipart proxy.
   const mjpeg = computeMjpegUrl(hass, cameraEntityId);
   if (mjpeg && img) {
     stopVideo();
@@ -411,6 +517,7 @@ export async function attachLiveStream(options: {
     };
   }
 
+  // 4) Snapshot last resort.
   const snapshot = computeSnapshotUrl(hass, cameraEntityId);
   if (snapshot && img) {
     stopVideo();
@@ -433,9 +540,9 @@ export async function attachLiveStream(options: {
  * @deprecated Use attachLiveStream.
  */
 export async function tryAttachWebRtc(
-  video: HTMLVideoElement,
+  _video: HTMLVideoElement,
   streamUrl: string | null,
 ): Promise<boolean> {
-  if (!streamUrl || !video) return false;
+  if (!streamUrl) return false;
   return false;
 }
