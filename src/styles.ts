@@ -82,9 +82,18 @@ export const cardStyles = css`
   }
 
   .stream-media {
-    object-fit: cover;
+    /* Native aspect — letterbox instead of crop/stretch. */
+    object-fit: contain;
     background: #0e1012;
     z-index: 1;
+  }
+
+  /* HTML-native <video> fallback (last child after <source>s). */
+  video.stream-media > .stream-fallback {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #0e1012;
   }
 
   .stream-placeholder {

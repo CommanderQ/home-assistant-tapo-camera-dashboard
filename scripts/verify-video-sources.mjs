@@ -20,11 +20,13 @@ const result = await page.waitForFunction(
       src: s.getAttribute("src") ?? "",
       type: s.getAttribute("type") ?? "",
     }));
+    const fallback = video.querySelector("img.stream-fallback");
     return {
       sourceCount: sources.length,
       sources,
       hasMp4: sources.some((s) => s.type === "video/mp4"),
       hasHls: sources.some((s) => s.type === "application/vnd.apple.mpegurl"),
+      hasNestedFallbackImg: !!fallback,
     };
   },
   { timeout: 20000 },
@@ -40,6 +42,10 @@ if (!result.hasMp4 || !result.hasHls) {
   console.error("FAIL: expected mp4 + hls sources", result);
   process.exit(1);
 }
+if (!result.hasNestedFallbackImg) {
+  console.error("FAIL: expected nested img.stream-fallback inside video", result);
+  process.exit(1);
+}
 
-console.log("OK: video source children present");
+console.log("OK: video source children + nested fallback img present");
 console.log(JSON.stringify(result, null, 2));

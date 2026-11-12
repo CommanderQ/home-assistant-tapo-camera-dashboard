@@ -61,7 +61,10 @@ export class TapoC260Card extends LitElement {
 
   private _hold: HoldRepeater | null = null;
   private _videoRef = createRef<HTMLVideoElement>();
-  private _imgRef = createRef<HTMLImageElement>();
+  /** Nested HTML fallback inside <video> (poster companion). */
+  private _fallbackImgRef = createRef<HTMLImageElement>();
+  /** Visible sibling for MJPEG live (cannot play inside <video>). */
+  private _mjpegImgRef = createRef<HTMLImageElement>();
   private _angleHideTimer: ReturnType<typeof setTimeout> | null = null;
   private _hdHoldTimer: ReturnType<typeof setTimeout> | null = null;
   private _streamHandle: StreamHandle | null = null;
@@ -239,7 +242,8 @@ export class TapoC260Card extends LitElement {
     const handle = await attachLiveStream({
       hass: this.hass,
       video: this._videoRef.value,
-      img: this._imgRef.value,
+      img: this._mjpegImgRef.value,
+      fallbackImg: this._fallbackImgRef.value,
       cameraEntityId: entityId,
       go2rtc: config.go2rtc,
       httpCandidates,
@@ -348,8 +352,11 @@ export class TapoC260Card extends LitElement {
     const locked = this._privacyLocked;
     const mode = this._streamMode;
     const showVideo =
-      mode === "webrtc" || mode === "mse" || mode === "hls";
-    const showImg = mode === "mjpeg" || mode === "image";
+      mode === "webrtc" ||
+      mode === "mse" ||
+      mode === "hls" ||
+      mode === "image";
+    const showMjpeg = mode === "mjpeg";
     const showPlaceholder = !this._streamReady;
 
     return html`
@@ -367,11 +374,16 @@ export class TapoC260Card extends LitElement {
               ${this._httpSources.map(
                 (s) => html`<source src=${s.src} type=${s.type} />`,
               )}
+              <img
+                ${ref(this._fallbackImgRef)}
+                class="stream-fallback"
+                alt="Camera"
+              />
             </video>
             <img
-              ${ref(this._imgRef)}
+              ${ref(this._mjpegImgRef)}
               class="stream-media"
-              style=${styleMap({ display: showImg ? "block" : "none" })}
+              style=${styleMap({ display: showMjpeg ? "block" : "none" })}
               alt="Camera"
             />
             ${showPlaceholder

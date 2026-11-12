@@ -321,6 +321,7 @@ function waitForVideoData(
 function resetVideoMedia(video: HTMLVideoElement): void {
   video.pause();
   video.removeAttribute("src");
+  video.removeAttribute("poster");
   video.srcObject = null;
 }
 
@@ -746,12 +747,16 @@ async function attachHlsJs(
  * 1. WebRTC (go2rtc WS / HA camera) — cannot use <source>
  * 2. Multi-<source> HTTP candidates (go2rtc MP4 / HLS, HA HLS) — browser picks
  * 3. hls.js for HLS URLs when native <source> selection fails (Chrome)
- * 4. MJPEG → still / poster
+ * 4. MJPEG (sibling <img> — cannot play inside <video>)
+ * 5. Still via video poster + nested <img> fallback inside <video>
  */
 export async function attachLiveStream(options: {
   hass: HomeAssistant | undefined;
   video: HTMLVideoElement | null | undefined;
+  /** Visible MJPEG sibling (not the nested HTML fallback). */
   img?: HTMLImageElement | null | undefined;
+  /** Nested <img> inside <video> for HTML-native fallback. */
+  fallbackImg?: HTMLImageElement | null | undefined;
   cameraEntityId: string | undefined;
   go2rtc?: string;
   /**
@@ -760,10 +765,13 @@ export async function attachLiveStream(options: {
    */
   httpCandidates?: HttpStreamCandidate[];
 }): Promise<StreamHandle> {
-  const { hass, video, img, cameraEntityId, go2rtc } = options;
+  const { hass, video, img, fallbackImg, cameraEntityId, go2rtc } = options;
 
   const stopImg = () => {
     if (img) img.removeAttribute("src");
+  };
+  const stopFallback = () => {
+    if (fallbackImg) fallbackImg.removeAttribute("src");
   };
   const stopVideo = () => {
     if (!video) return;
@@ -782,6 +790,7 @@ export async function attachLiveStream(options: {
       const handle = await attachGo2rtcWebRtc(video, wsUrl);
       if (handle) {
         stopImg();
+        stopFallback();
         return handle;
       }
       stopVideo();
@@ -800,6 +809,7 @@ export async function attachLiveStream(options: {
       const handle = await attachHaWebRtc(hass, video, cameraEntityId);
       if (handle) {
         stopImg();
+        stopFallback();
         return handle;
       }
       stopVideo();
@@ -817,6 +827,7 @@ export async function attachLiveStream(options: {
     const multi = await attachMultiSource(video, candidates);
     if (multi) {
       stopImg();
+      stopFallback();
       return multi;
     }
     stopVideo();
@@ -826,6 +837,7 @@ export async function attachLiveStream(options: {
     const hlsHandle = await attachHlsJs(video, hlsUrls);
     if (hlsHandle) {
       stopImg();
+      stopFallback();
       return hlsHandle;
     }
     stopVideo();
@@ -833,14 +845,16 @@ export async function attachLiveStream(options: {
 
   if (!cameraEntityId) {
     stopImg();
+    stopFallback();
     stopVideo();
     return { mode: "none", stop: () => undefined };
   }
 
-  // 4) MJPEG live multipart
+  // 4) MJPEG live multipart (needs a visible sibling <img>)
   const mjpeg = computeMjpegUrl(hass, cameraEntityId);
   if (mjpeg && img) {
     stopVideo();
+    stopFallback();
     img.src = mjpeg;
     return {
       mode: "mjpeg",
@@ -850,10 +864,25 @@ export async function attachLiveStream(options: {
     };
   }
 
-  // 5) Still / poster
+  // 5) Still / poster — native video fallback (poster + nested <img>)
   const snapshot = computeSnapshotUrl(hass, cameraEntityId);
+  if (snapshot && video) {
+    stopVideo();
+    stopImg();
+    video.poster = snapshot;
+    if (fallbackImg) fallbackImg.src = snapshot;
+    return {
+      mode: "image",
+      stop: () => {
+        video.removeAttribute("poster");
+        stopFallback();
+      },
+    };
+  }
+
   if (snapshot && img) {
     stopVideo();
+    stopFallback();
     img.src = snapshot;
     return {
       mode: "image",
@@ -864,6 +893,7 @@ export async function attachLiveStream(options: {
   }
 
   stopImg();
+  stopFallback();
   stopVideo();
   return { mode: "none", stop: () => undefined };
 }
