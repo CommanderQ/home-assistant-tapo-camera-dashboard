@@ -24,9 +24,11 @@ import {
 } from "./ptz";
 import { cardStyles } from "./styles";
 import {
-  activeCameraEntity,
   attachLiveStream,
   collectHttpStreamCandidates,
+  fallbackCameraEntity,
+  filterNativeSourceCandidates,
+  primaryCameraEntity,
   type HttpStreamCandidate,
   type StreamHandle,
   type StreamMode,
@@ -39,8 +41,10 @@ import type {
 } from "./types";
 
 const CARD_TYPE = "tapo-c260-card";
-/** Keep HD stream briefly after PTZ interaction ends. */
-const HD_HOLD_MS = 8000;
+/** Cap retries after a failed attach so hass thrash cannot storm reconnects. */
+const MAX_ATTACH_RETRIES = 5;
+const ATTACH_RETRY_BASE_MS = 1500;
+const ATTACH_RETRY_MAX_MS = 30000;
 
 @customElement("tapo-c260-card")
 export class TapoC260Card extends LitElement {
@@ -52,10 +56,9 @@ export class TapoC260Card extends LitElement {
   @state() private _orientation: Orientation = createOrientation(false);
   @state() private _pressing = false;
   @state() private _activeDir: PtzDirection | null = null;
-  @state() private _preferHd = false;
   @state() private _streamMode: StreamMode = "none";
   @state() private _streamReady = false;
-  /** HTTP stream URLs rendered as real <source> children (Lit-owned). */
+  /** Full HTTP candidate list (incl. HLS for hls.js). DOM uses a filtered subset. */
   @state() private _httpSources: HttpStreamCandidate[] = [];
   @state() private _error: string | null = null;
 
@@ -66,10 +69,11 @@ export class TapoC260Card extends LitElement {
   /** Visible sibling for MJPEG live (cannot play inside <video>). */
   private _mjpegImgRef = createRef<HTMLImageElement>();
   private _angleHideTimer: ReturnType<typeof setTimeout> | null = null;
-  private _hdHoldTimer: ReturnType<typeof setTimeout> | null = null;
+  private _retryTimer: ReturnType<typeof setTimeout> | null = null;
   private _streamHandle: StreamHandle | null = null;
   private _attachGeneration = 0;
-  private _activeStreamEntity: string | undefined;
+  private _streamIdentity: string | undefined;
+  private _retryAttempt = 0;
 
   public setConfig(config: TapoC260CardConfig): void {
     if (!config) {
@@ -146,7 +150,7 @@ export class TapoC260Card extends LitElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    if (changed.has("hass") || changed.has("_config") || changed.has("_preferHd")) {
+    if (changed.has("hass") || changed.has("_config")) {
       if (this._privacyLocked) {
         this._stopHold(true);
         this._clearAngleHideTimer();
@@ -159,7 +163,7 @@ export class TapoC260Card extends LitElement {
     super.disconnectedCallback();
     this._stopHold(true);
     this._clearAngleHideTimer();
-    this._clearHdHoldTimer();
+    this._clearRetryTimer();
     this._stopStream();
   }
 
@@ -170,10 +174,10 @@ export class TapoC260Card extends LitElement {
     }
   }
 
-  private _clearHdHoldTimer(): void {
-    if (this._hdHoldTimer) {
-      clearTimeout(this._hdHoldTimer);
-      this._hdHoldTimer = null;
+  private _clearRetryTimer(): void {
+    if (this._retryTimer) {
+      clearTimeout(this._retryTimer);
+      this._retryTimer = null;
     }
   }
 
@@ -185,52 +189,94 @@ export class TapoC260Card extends LitElement {
     }, delayMs);
   }
 
-  private _bumpHd(): void {
-    if (!this._resolvedConfig?.camera_hd) return;
-    this._clearHdHoldTimer();
-    if (!this._preferHd) {
-      this._preferHd = true;
-    }
-    this._hdHoldTimer = setTimeout(() => {
-      this._preferHd = false;
-      this._hdHoldTimer = null;
-    }, HD_HOLD_MS);
+  private _streamIdentityKey(config: TapoC260CardConfig): string {
+    const primary = primaryCameraEntity(config) ?? "";
+    const fallback = fallbackCameraEntity(config) ?? "";
+    return `${primary}|${fallback}|${config.go2rtc?.trim() ?? ""}`;
   }
 
   private _stopStream(): void {
+    this._attachGeneration += 1;
+    this._clearRetryTimer();
     this._streamHandle?.stop();
     this._streamHandle = null;
-    this._activeStreamEntity = undefined;
+    this._streamIdentity = undefined;
     this._streamReady = false;
     this._streamMode = "none";
     this._httpSources = [];
   }
 
+  /**
+   * Sync live attach only when stream identity changes.
+   * A failed mode `"none"` does not re-attach on every hass tick — backoff owns retries.
+   */
   private async _syncStream(): Promise<void> {
+    const config = this._resolvedConfig;
+    if (!config?.camera) {
+      this._clearRetryTimer();
+      this._retryAttempt = 0;
+      this._stopStream();
+      return;
+    }
+
+    const identity = this._streamIdentityKey(config);
+    const identityChanged = identity !== this._streamIdentity;
+
+    if (!identityChanged) {
+      // Healthy session — ignore hass thrash.
+      if (this._streamHandle && this._streamMode !== "none") return;
+      // Failed or in-flight for this identity — backoff / generation owns recovery.
+      return;
+    }
+
+    this._clearRetryTimer();
+    this._retryAttempt = 0;
+    await this._attachForIdentity(identity);
+  }
+
+  private _scheduleAttachRetry(identity: string): void {
+    if (this._retryAttempt >= MAX_ATTACH_RETRIES) return;
+    this._clearRetryTimer();
+    const delay = Math.min(
+      ATTACH_RETRY_MAX_MS,
+      ATTACH_RETRY_BASE_MS * 2 ** this._retryAttempt,
+    );
+    this._retryAttempt += 1;
+    this._retryTimer = setTimeout(() => {
+      this._retryTimer = null;
+      if (this._streamIdentity !== identity) return;
+      if (this._streamHandle && this._streamMode !== "none") return;
+      void this._attachForIdentity(identity);
+    }, delay);
+  }
+
+  private async _attachForIdentity(identity: string): Promise<void> {
     const config = this._resolvedConfig;
     if (!config?.camera) {
       this._stopStream();
       return;
     }
 
-    const entityId = activeCameraEntity(config, this._preferHd);
-    if (
-      entityId === this._activeStreamEntity &&
-      this._streamHandle &&
-      this._streamMode !== "none"
-    ) {
-      return;
+    const generation = ++this._attachGeneration;
+    this._streamIdentity = identity;
+
+    // Stop the previous session without flashing the placeholder when we already
+    // had a ready frame — keep last paint until the new attach settles.
+    const hadReady = this._streamReady;
+    this._streamHandle?.stop();
+    this._streamHandle = null;
+    if (!hadReady) {
+      this._streamReady = false;
+      this._streamMode = "none";
     }
 
-    const generation = ++this._attachGeneration;
-    this._stopStream();
-    this._activeStreamEntity = entityId;
+    const primary = primaryCameraEntity(config);
+    const fallback = fallbackCameraEntity(config);
 
-    // Collect HTTP candidates first and render them as <source> via Lit so they
-    // survive re-renders (imperative appendChild was wiped by empty <video>).
     const httpCandidates = await collectHttpStreamCandidates({
       hass: this.hass,
-      cameraEntityId: entityId,
+      cameraEntityId: primary,
+      fallbackCameraEntityId: fallback,
       go2rtc: config.go2rtc,
     });
     if (generation !== this._attachGeneration) return;
@@ -244,7 +290,8 @@ export class TapoC260Card extends LitElement {
       video: this._videoRef.value,
       img: this._mjpegImgRef.value,
       fallbackImg: this._fallbackImgRef.value,
-      cameraEntityId: entityId,
+      cameraEntityId: primary,
+      fallbackCameraEntityId: fallback,
       go2rtc: config.go2rtc,
       httpCandidates,
     });
@@ -257,6 +304,12 @@ export class TapoC260Card extends LitElement {
     this._streamHandle = handle;
     this._streamMode = handle.mode;
     this._streamReady = handle.mode !== "none";
+
+    if (handle.mode === "none") {
+      this._scheduleAttachRetry(identity);
+    } else {
+      this._retryAttempt = 0;
+    }
   }
 
   private get _privacyLocked(): boolean {
@@ -284,7 +337,6 @@ export class TapoC260Card extends LitElement {
   private async _onNudge(direction: PtzDirection): Promise<void> {
     const config = this._resolvedConfig;
     if (!config || this._privacyLocked) return;
-    this._bumpHd();
     this._orientation = applyNudge(
       this._orientation,
       direction,
@@ -303,7 +355,6 @@ export class TapoC260Card extends LitElement {
     );
     this._clearAngleHideTimer();
     this._stopHold(true);
-    this._bumpHd();
     this._activeDir = direction;
     this._pressing = true;
     this._hold = new HoldRepeater(
@@ -332,7 +383,6 @@ export class TapoC260Card extends LitElement {
     const config = this._resolvedConfig;
     if (!config || this._privacyLocked) return;
     event.preventDefault();
-    this._bumpHd();
     this._pressing = true;
     this._orientation = resetOrientation();
     await calibrate(this.hass, config);
@@ -358,6 +408,7 @@ export class TapoC260Card extends LitElement {
       mode === "image";
     const showMjpeg = mode === "mjpeg";
     const showPlaceholder = !this._streamReady;
+    const domSources = filterNativeSourceCandidates(this._httpSources);
 
     return html`
       <ha-card class="card">
@@ -371,7 +422,7 @@ export class TapoC260Card extends LitElement {
               playsinline
               muted
             >
-              ${this._httpSources.map(
+              ${domSources.map(
                 (s) => html`<source src=${s.src} type=${s.type} />`,
               )}
               <img
@@ -392,9 +443,9 @@ export class TapoC260Card extends LitElement {
                     <div>
                       <strong>Connecting stream…</strong>
                       <span
-                        >WebRTC first, then multi-source MP4/HLS (hls.js on
-                        Chrome). Set <code>camera_hd</code> for HD while
-                        controlling PTZ.</span
+                        >WebRTC first, then multi-source MP4 / hls.js.
+                        <code>camera_hd</code> is preferred when set; SD is a
+                        fallback source only (no PTZ quality switch).</span
                       >
                     </div>
                   </div>

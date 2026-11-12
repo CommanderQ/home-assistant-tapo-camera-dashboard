@@ -3,9 +3,12 @@ export interface TapoC260CardConfig {
   type?: string;
   /** Optional tapo_control device id — editor auto-fills entity fields from it. */
   device?: string;
-  /** SD / idle camera entity (preferred default stream). */
+  /** Camera entity (often SD). Used as primary when `camera_hd` is omitted; otherwise a fallback source. */
   camera: string;
-  /** Optional HD camera entity upgraded on interaction. */
+  /**
+   * Optional HD camera entity. Preferred for WebRTC / HTTP candidates when set;
+   * `camera` remains a lower-quality fallback. No runtime SD↔HD switching.
+   */
   camera_hd?: string;
   /** Optional go2rtc stream name or absolute WebRTC URL. */
   go2rtc?: string;

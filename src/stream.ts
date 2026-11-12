@@ -130,16 +130,45 @@ function supportsStream(entity: HassEntity | undefined): boolean {
 }
 
 /**
- * Pick which camera entity to show: HD while interacting when configured,
- * otherwise the primary (usually SD) camera.
+ * Primary live camera entity: prefer HD when configured.
+ * SD (`camera`) is a fallback candidate only — no runtime SD↔HD switching.
  */
-export function activeCameraEntity(
+export function primaryCameraEntity(
   config: { camera: string; camera_hd?: string } | undefined,
-  preferHd: boolean,
 ): string | undefined {
   if (!config?.camera) return undefined;
-  if (preferHd && config.camera_hd) return config.camera_hd;
+  const hd = config.camera_hd?.trim();
+  return hd || config.camera;
+}
+
+/** SD / lower entity used only as a later attach / HTTP-source fallback. */
+export function fallbackCameraEntity(
+  config: { camera: string; camera_hd?: string } | undefined,
+): string | undefined {
+  if (!config?.camera) return undefined;
+  const primary = primaryCameraEntity(config);
+  if (!primary || config.camera === primary) return undefined;
   return config.camera;
+}
+
+/** @deprecated Use primaryCameraEntity — SD/HD preference flipping was removed. */
+export function activeCameraEntity(
+  config: { camera: string; camera_hd?: string } | undefined,
+  _preferHd?: boolean,
+): string | undefined {
+  return primaryCameraEntity(config);
+}
+
+/**
+ * Candidates safe as Lit `<source>` children.
+ * On MSE browsers (Chrome), omit mpegurl — Chromium's canPlayType lies and
+ * video.load() then fails with "No decoders for … mpegurl".
+ */
+export function filterNativeSourceCandidates(
+  candidates: HttpStreamCandidate[],
+): HttpStreamCandidate[] {
+  const allowNativeHls = !Hls.isSupported();
+  return candidates.filter((c) => c.kind !== "hls" || allowNativeHls);
 }
 
 /** Convert http(s) → ws(s); leave ws(s) unchanged. */
@@ -281,8 +310,36 @@ async function fetchHlsUrl(
   return null;
 }
 
+/**
+ * Native HLS only when hls.js/MSE is unavailable (typically Safari).
+ * Do not trust `canPlayType("application/vnd.apple.mpegurl")` on Chromium —
+ * it returns a non-empty "maybe" without a real decoder.
+ */
 function canPlayHlsNatively(video: HTMLVideoElement): boolean {
+  if (Hls.isSupported()) return false;
   return video.canPlayType("application/vnd.apple.mpegurl") !== "";
+}
+
+/** Cap ICE lists from HA — Chrome warns and slows discovery at ≥5 servers. */
+const MAX_ICE_SERVER_ENTRIES = 2;
+
+function capIceConfiguration(config: RTCConfiguration): RTCConfiguration {
+  const servers = config.iceServers;
+  if (!servers || servers.length <= MAX_ICE_SERVER_ENTRIES) return config;
+
+  const isTurn = (entry: RTCIceServer): boolean => {
+    const urls = Array.isArray(entry.urls) ? entry.urls : [entry.urls];
+    return urls.some(
+      (u) => typeof u === "string" && /^turns?:/i.test(u),
+    );
+  };
+
+  const turn = servers.filter(isTurn);
+  const rest = servers.filter((s) => !isTurn(s));
+  return {
+    ...config,
+    iceServers: [...turn, ...rest].slice(0, MAX_ICE_SERVER_ENTRIES),
+  };
 }
 
 function waitForVideoData(
@@ -502,7 +559,7 @@ async function attachHaWebRtc(
           type: "camera/webrtc/get_client_config",
           entity_id: entityId,
         });
-        if (cfg?.configuration) clientConfig = cfg.configuration;
+        if (cfg?.configuration) clientConfig = capIceConfiguration(cfg.configuration);
       }
     } catch {
       /* optional */
@@ -591,15 +648,19 @@ async function attachHaWebRtc(
 }
 
 /**
- * Collect HTTP stream URLs suitable for <source> children.
- * Order: go2rtc progressive MP4 (MSE-friendly), then HLS playlists.
+ * Collect HTTP stream URLs suitable for <source> / hls.js.
+ * Order: go2rtc progressive MP4, then HLS; primary (HD) entity before fallback (SD).
+ * Callers must run HLS candidates through filterNativeSourceCandidates before
+ * putting them in the DOM on MSE browsers.
  */
 export async function collectHttpStreamCandidates(options: {
   hass: HomeAssistant | undefined;
   cameraEntityId: string | undefined;
+  /** Lower-quality HA camera entity (e.g. SD) tried after the primary. */
+  fallbackCameraEntityId?: string;
   go2rtc?: string;
 }): Promise<HttpStreamCandidate[]> {
-  const { hass, cameraEntityId, go2rtc } = options;
+  const { hass, cameraEntityId, fallbackCameraEntityId, go2rtc } = options;
   const out: HttpStreamCandidate[] = [];
   const seen = new Set<string>();
 
@@ -626,8 +687,13 @@ export async function collectHttpStreamCandidates(options: {
     });
   }
 
-  if (hass && cameraEntityId) {
-    const hlsUrl = await fetchHlsUrl(hass, cameraEntityId);
+  const entityIds = [cameraEntityId, fallbackCameraEntityId].filter(
+    (id, i, arr): id is string => !!id && arr.indexOf(id) === i,
+  );
+
+  for (const entityId of entityIds) {
+    if (!hass) break;
+    const hlsUrl = await fetchHlsUrl(hass, entityId);
     if (hlsUrl) {
       push({
         src: hlsUrl,
@@ -637,7 +703,7 @@ export async function collectHttpStreamCandidates(options: {
     }
   }
 
-  // Prefer mp4 before hls so Chrome can pick a playable source without native HLS.
+  // Prefer mp4 before hls. Entity push order already prefers HD over SD.
   out.sort((a, b) => {
     if (a.kind === b.kind) return 0;
     return a.kind === "mp4" ? -1 : 1;
@@ -744,9 +810,9 @@ async function attachHlsJs(
  * Attach the best available live stream to a video (and optional img for MJPEG).
  *
  * Order:
- * 1. WebRTC (go2rtc WS / HA camera) — cannot use <source>
- * 2. Multi-<source> HTTP candidates (go2rtc MP4 / HLS, HA HLS) — browser picks
- * 3. hls.js for HLS URLs when native <source> selection fails (Chrome)
+ * 1. WebRTC (go2rtc WS / HA camera — primary/HD entity, then fallback/SD)
+ * 2. Multi-<source> HTTP candidates (mp4 / native HLS only) — browser picks first compatible
+ * 3. hls.js for HLS URLs on MSE browsers (never via unsupported <source type>)
  * 4. MJPEG (sibling <img> — cannot play inside <video>)
  * 5. Still via video poster + nested <img> fallback inside <video>
  */
@@ -757,15 +823,26 @@ export async function attachLiveStream(options: {
   img?: HTMLImageElement | null | undefined;
   /** Nested <img> inside <video> for HTML-native fallback. */
   fallbackImg?: HTMLImageElement | null | undefined;
+  /** Preferred camera (HD when configured). */
   cameraEntityId: string | undefined;
+  /** Optional lower-quality entity tried after primary WebRTC / for HTTP fallbacks. */
+  fallbackCameraEntityId?: string;
   go2rtc?: string;
   /**
-   * HTTP candidates already rendered as <source> by the Lit card.
-   * When omitted, candidates are collected here (DOM sources may still be absent).
+   * HTTP candidates already known to the Lit card.
+   * HLS entries are for hls.js; only filterNativeSourceCandidates belong in <source>.
    */
   httpCandidates?: HttpStreamCandidate[];
 }): Promise<StreamHandle> {
-  const { hass, video, img, fallbackImg, cameraEntityId, go2rtc } = options;
+  const {
+    hass,
+    video,
+    img,
+    fallbackImg,
+    cameraEntityId,
+    fallbackCameraEntityId,
+    go2rtc,
+  } = options;
 
   const stopImg = () => {
     if (img) img.removeAttribute("src");
@@ -783,6 +860,9 @@ export async function attachLiveStream(options: {
   }
 
   const wsUrls = resolveGo2rtcWsUrls(hass, go2rtc);
+  const haEntities = [cameraEntityId, fallbackCameraEntityId].filter(
+    (id, i, arr): id is string => !!id && arr.indexOf(id) === i,
+  );
 
   // 1) WebRTC preferred (not expressible as <source>; Lit <source>s stay in DOM)
   if (video) {
@@ -797,30 +877,32 @@ export async function attachLiveStream(options: {
     }
   }
 
-  if (
-    video &&
-    hass &&
-    cameraEntityId &&
-    typeof RTCPeerConnection !== "undefined"
-  ) {
-    const entity = cameraEntity(hass, cameraEntityId);
-    const streamType = frontendStreamType(entity);
-    if (streamType === "webrtc" || !!go2rtc || supportsStream(entity)) {
-      const handle = await attachHaWebRtc(hass, video, cameraEntityId);
-      if (handle) {
-        stopImg();
-        stopFallback();
-        return handle;
+  if (video && hass && typeof RTCPeerConnection !== "undefined") {
+    for (const entityId of haEntities) {
+      const entity = cameraEntity(hass, entityId);
+      const streamType = frontendStreamType(entity);
+      if (streamType === "webrtc" || !!go2rtc || supportsStream(entity)) {
+        const handle = await attachHaWebRtc(hass, video, entityId);
+        if (handle) {
+          stopImg();
+          stopFallback();
+          return handle;
+        }
+        stopVideo();
       }
-      stopVideo();
     }
   }
 
-  // 2) Play from Lit <source> children (mp4 / native HLS)
+  // 2) Play from Lit <source> children (mp4 / native HLS only)
   const candidates =
     options.httpCandidates ??
     (video
-      ? await collectHttpStreamCandidates({ hass, cameraEntityId, go2rtc })
+      ? await collectHttpStreamCandidates({
+          hass,
+          cameraEntityId,
+          fallbackCameraEntityId,
+          go2rtc,
+        })
       : []);
 
   if (video && candidates.length) {
@@ -832,7 +914,7 @@ export async function attachLiveStream(options: {
     }
     stopVideo();
 
-    // 3) Chrome / non-Safari: hls.js for HLS candidates the browser skipped
+    // 3) Chrome / non-Safari: hls.js for HLS candidates (not via <source>)
     const hlsUrls = candidates.filter((c) => c.kind === "hls").map((c) => c.src);
     const hlsHandle = await attachHlsJs(video, hlsUrls);
     if (hlsHandle) {
@@ -843,53 +925,57 @@ export async function attachLiveStream(options: {
     stopVideo();
   }
 
-  if (!cameraEntityId) {
+  if (!haEntities.length) {
     stopImg();
     stopFallback();
     stopVideo();
     return { mode: "none", stop: () => undefined };
   }
 
-  // 4) MJPEG live multipart (needs a visible sibling <img>)
-  const mjpeg = computeMjpegUrl(hass, cameraEntityId);
-  if (mjpeg && img) {
-    stopVideo();
-    stopFallback();
-    img.src = mjpeg;
-    return {
-      mode: "mjpeg",
-      stop: () => {
-        stopImg();
-      },
-    };
+  // 4) MJPEG live multipart (needs a visible sibling <img>) — primary then fallback
+  for (const entityId of haEntities) {
+    const mjpeg = computeMjpegUrl(hass, entityId);
+    if (mjpeg && img) {
+      stopVideo();
+      stopFallback();
+      img.src = mjpeg;
+      return {
+        mode: "mjpeg",
+        stop: () => {
+          stopImg();
+        },
+      };
+    }
   }
 
   // 5) Still / poster — native video fallback (poster + nested <img>)
-  const snapshot = computeSnapshotUrl(hass, cameraEntityId);
-  if (snapshot && video) {
-    stopVideo();
-    stopImg();
-    video.poster = snapshot;
-    if (fallbackImg) fallbackImg.src = snapshot;
-    return {
-      mode: "image",
-      stop: () => {
-        video.removeAttribute("poster");
-        stopFallback();
-      },
-    };
-  }
-
-  if (snapshot && img) {
-    stopVideo();
-    stopFallback();
-    img.src = snapshot;
-    return {
-      mode: "image",
-      stop: () => {
-        stopImg();
-      },
-    };
+  for (const entityId of haEntities) {
+    const snapshot = computeSnapshotUrl(hass, entityId);
+    if (!snapshot) continue;
+    if (video) {
+      stopVideo();
+      stopImg();
+      video.poster = snapshot;
+      if (fallbackImg) fallbackImg.src = snapshot;
+      return {
+        mode: "image",
+        stop: () => {
+          video.removeAttribute("poster");
+          stopFallback();
+        },
+      };
+    }
+    if (img) {
+      stopVideo();
+      stopFallback();
+      img.src = snapshot;
+      return {
+        mode: "image",
+        stop: () => {
+          stopImg();
+        },
+      };
+    }
   }
 
   stopImg();

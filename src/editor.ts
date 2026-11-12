@@ -74,14 +74,16 @@ const EDITOR_SCHEMA: HaFormSchema[] = [
       {
         name: "camera",
         required: true,
-        label: "Camera (SD / idle)",
-        helper: "Default stream while idle.",
+        label: "Camera (SD / fallback)",
+        helper:
+          "Lower-quality camera entity. Used as primary when Camera HD is empty; otherwise a fallback source only.",
         selector: { entity: { domain: "camera" } },
       },
       {
         name: "camera_hd",
-        label: "Camera HD",
-        helper: "Used for live view while you are controlling PTZ.",
+        label: "Camera HD (preferred)",
+        helper:
+          "Preferred live entity when set. Both HD and SD are collected as sources (HD first); there is no PTZ quality switch.",
         selector: { entity: { domain: "camera" } },
       },
       {

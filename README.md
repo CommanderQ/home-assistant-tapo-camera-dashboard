@@ -11,8 +11,8 @@ Home Assistant Lovelace card (`custom:tapo-c260-card`) for a **Tapo C260**: live
 - Click-to-nudge **and** press-and-hold repeat on pan/tilt
 - Center control = home / calibrate
 - Yaw / pitch readout **on press only**, and only once orientation is known (hidden when unknown)
-- Live camera stream: **WebRTC → multi-`<source>` MP4/HLS (hls.js on Chrome) → MJPEG** (snapshot last)
-- SD idle stream with **HD upgrade while using PTZ** when `camera_hd` is set
+- Live camera stream: **WebRTC → multi-`<source>` MP4 (hls.js for HLS on Chrome) → MJPEG** (snapshot last)
+- Prefers **HD when `camera_hd` is set** (primary entity + earlier HTTP candidates); SD is a fallback only — **no runtime SD↔HD switching**
 - Phone-first touch targets (≥44px)
 - Single camera
 - Lovelace visual editor: pick the **Tapo device** and entities auto-fill
@@ -60,12 +60,12 @@ Playback is **not** a single `.m3u8` stuck on `<video src>` (that fails on Chrom
 
 | Step | Path |
 | --- | --- |
-| 1 | **WebRTC** via go2rtc WebSocket and/or HA `camera/webrtc/*` (cannot use `<source>`) |
-| 2 | One `<video>` with multiple Lit-rendered **`<source>`** children (always in the shadow DOM when HTTP URLs exist): go2rtc `stream.mp4`, then HLS `.m3u8` — browser picks what it can decode |
-| 3 | **hls.js** for HLS URLs when the browser skips mpegurl sources (typical Chrome/desktop) |
+| 1 | **WebRTC** via go2rtc WebSocket and/or HA `camera/webrtc/*` — prefers `camera_hd` when set, then `camera` |
+| 2 | One `<video>` with Lit-rendered **`<source>`** children that the browser can actually decode: go2rtc `stream.mp4` (and native HLS **only on Safari**). Chromium never gets `type="application/vnd.apple.mpegurl"` sources — that breaks `video.load()` |
+| 3 | **hls.js** for HLS playlist URLs on MSE browsers (Chrome/desktop) |
 | 4 | **MJPEG** `/api/camera_proxy_stream/…`, then still/poster |
 
-`camera` is the idle/default feed (usually SD). When `camera_hd` is set, the card switches to HD while you press the PTZ pad / home, and holds HD briefly afterward.
+When both `camera` and `camera_hd` are set, the card **prefers HD** as the primary WebRTC entity and lists HD HTTP candidates before SD. Browsers pick the first *compatible* `<source>`, not “highest quality” by themselves — quality preference comes from our candidate order and primary-entity choice, not from runtime switching. PTZ no longer tears down / swaps streams.
 
 ### go2rtc URL expectations
 
@@ -85,7 +85,7 @@ Ensure go2rtc knows the same stream name you put in `go2rtc` (or in the absolute
 | Key | Purpose |
 | --- | --- |
 | `device` | `tapo_control` device id — auto-associates entities |
-| `camera_hd` | HD entity used while controlling PTZ |
+| `camera_hd` | Preferred HD camera entity (SD/`camera` stays a fallback source; no PTZ switch) |
 | `go2rtc` | Stream name or absolute go2rtc `/api/ws` URL (see above) |
 | `title` | Stream chrome label (default `Feed · C260` or device name) |
 | `hold_interval_ms` | Hold-to-repeat interval (default `350`) |

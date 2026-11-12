@@ -38,8 +38,17 @@ if (!result || result.sourceCount < 1) {
   console.error("FAIL: video has no <source> children", result);
   process.exit(1);
 }
-if (!result.hasMp4 || !result.hasHls) {
-  console.error("FAIL: expected mp4 + hls sources", result);
+if (!result.hasMp4) {
+  console.error("FAIL: expected mp4 <source>", result);
+  process.exit(1);
+}
+// Chromium (Playwright) must NOT park unsupported mpegurl <source> nodes —
+// that breaks video.load(). HLS is fed through hls.js instead.
+if (result.hasHls) {
+  console.error(
+    "FAIL: unexpected HLS <source> on Chromium (use hls.js, not mpegurl type)",
+    result,
+  );
   process.exit(1);
 }
 if (!result.hasNestedFallbackImg) {
@@ -47,5 +56,5 @@ if (!result.hasNestedFallbackImg) {
   process.exit(1);
 }
 
-console.log("OK: video source children + nested fallback img present");
+console.log("OK: mp4 <source> + nested fallback img; no Chromium HLS <source>");
 console.log(JSON.stringify(result, null, 2));
