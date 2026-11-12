@@ -1,0 +1,6 @@
+{
+  "name": "Tapo C260 Camera Card",
+  "filename": "tapo-c260-card.js",
+  "render_readme": true,
+  "homeassistant": "2024.11.0"
+}

@@ -1,0 +1,39 @@
+{
+  "name": "home-assistant-tapo-camera-dashboard",
+  "version": "0.1.0",
+  "description": "Home Assistant Lovelace card for Tapo C260 — live stream + circular PTZ with perspective camera graphic",
+  "type": "module",
+  "main": "dist/tapo-c260-card.js",
+  "module": "dist/tapo-c260-card.js",
+  "scripts": {
+    "demo": "vite --config vite.config.ts --mode demo",
+    "dev": "vite --config vite.config.ts --mode demo",
+    "build": "tsc --noEmit && vite build",
+    "build:demo": "vite build --mode demo",
+    "preview": "vite preview --mode demo",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "home-assistant",
+    "lovelace",
+    "tapo",
+    "c260",
+    "ptz",
+    "webrtc",
+    "go2rtc"
+  ],
+  "author": "CommanderQ",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CommanderQ/home-assistant-tapo-camera-dashboard.git"
+  },
+  "dependencies": {
+    "lit": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.11"
+  }
+}

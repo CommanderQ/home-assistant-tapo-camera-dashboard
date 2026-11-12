@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Tapo C260 Card — Local Demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "DIN Alternate", "Helvetica Neue", "Arial Narrow", sans-serif;
+        background:
+          radial-gradient(ellipse at 50% 0%, #2c3238 0%, transparent 55%),
+          linear-gradient(180deg, #121416, #1a1c1e 40%, #0e1012);
+        color: #e6e8ea;
+        padding: 24px 16px 48px;
+      }
+      header {
+        max-width: 420px;
+        margin: 0 auto 20px;
+      }
+      h1 {
+        font-size: 1.15rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin: 0 0 6px;
+      }
+      .sub {
+        color: #9aa3ab;
+        font-size: 0.88rem;
+        letter-spacing: 0.03em;
+        margin: 0;
+      }
+      .stage {
+        max-width: 420px;
+        margin: 0 auto;
+      }
+      #log {
+        max-width: 420px;
+        margin: 18px auto 0;
+        padding: 12px 14px;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid #3a4046;
+        border-radius: 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 11px;
+        line-height: 1.45;
+        color: #9aa3ab;
+        max-height: 180px;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+      .toolbar {
+        max-width: 420px;
+        margin: 14px auto 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .toolbar button {
+        appearance: none;
+        border: 1px solid #5a636c;
+        background: linear-gradient(180deg, #4a525a, #2e343a);
+        color: #e6e8ea;
+        border-radius: 6px;
+        padding: 10px 12px;
+        min-height: 44px;
+        font: inherit;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+      }
+      .toolbar button:hover {
+        border-color: #d4a017;
+        color: #d4a017;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Tapo C260 Card Demo</h1>
+      <p class="sub">
+        Vite + Lit · mock hass · Concept C industrial pad · no Home Assistant install
+      </p>
+    </header>
+
+    <div class="stage">
+      <tapo-c260-card id="card"></tapo-c260-card>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" id="toggle-privacy">Toggle privacy</button>
+      <button type="button" id="clear-log">Clear service log</button>
+    </div>
+    <pre id="log">Service log…</pre>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
