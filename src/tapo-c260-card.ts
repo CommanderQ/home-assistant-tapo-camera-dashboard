@@ -398,7 +398,6 @@ export class TapoC260Card extends LitElement {
       return nothing;
     }
 
-    const title = config.title ?? "Feed · C260";
     const locked = this._privacyLocked;
     const mode = this._streamMode;
     const showVideo =
@@ -414,7 +413,6 @@ export class TapoC260Card extends LitElement {
       <ha-card class="card">
         <div class="layout">
           <div class="stream" aria-label="Camera stream">
-            <div class="stream-label">${title}</div>
             <video
               ${ref(this._videoRef)}
               class="stream-media"
