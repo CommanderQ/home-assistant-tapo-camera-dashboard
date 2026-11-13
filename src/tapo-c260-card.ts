@@ -689,25 +689,31 @@ export class TapoC260Card extends LitElement {
             </div>
 
             <div class="pad-controls">
-              <div class="ring-wrap">
-                <div class="ring">
-                  <div class="ticks" aria-hidden="true"></div>
-                  ${this._dirButton("up", "▲", "Tilt up")}
-                  ${this._dirButton("down", "▼", "Tilt down")}
-                  ${this._dirButton("left", "◀", "Pan left")}
-                  ${this._dirButton("right", "▶", "Pan right")}
-                  <div class="stage">
-                    <div
-                      class="orientation-view"
-                      aria-hidden="true"
-                      title="Camera orientation"
-                    >
-                      <div class="cam3d">
-                        ${camera3d(cameraTransform(this._orientation))}
+              <div class="pad-ptz">
+                <div class="ring-wrap">
+                  <div class="ring">
+                    <div class="ticks" aria-hidden="true"></div>
+                    ${this._dirButton("up", "▲", "Tilt up")}
+                    ${this._dirButton("down", "▼", "Tilt down")}
+                    ${this._dirButton("left", "◀", "Pan left")}
+                    ${this._dirButton("right", "▶", "Pan right")}
+                    <div class="stage">
+                      <div
+                        class="orientation-view"
+                        aria-hidden="true"
+                        title="Camera orientation"
+                      >
+                        <div class="cam3d">
+                          ${camera3d(cameraTransform(this._orientation))}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                <p class="hint">
+                  Click to nudge · hold to repeat · center shows orientation
+                </p>
               </div>
 
               <div class="pad-audio" aria-label="Stream audio">
@@ -735,10 +741,6 @@ export class TapoC260Card extends LitElement {
                 />
               </div>
             </div>
-
-            <p class="hint">
-              Click to nudge · hold to repeat · center shows orientation
-            </p>
           </div>
         </div>
       </ha-card>

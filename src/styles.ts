@@ -126,24 +126,34 @@ export const cardStyles = css`
     opacity: 1;
   }
 
-  /* Lower control row: horizontal; audio column stretches to ring height. */
+  /* Lower control row: PTZ block (ring + hint) | audio; audio matches ring only. */
   .pad-controls {
+    /* Shared so audio block-size tracks the ring, not ring+hint. */
+    --ring-size: min(220px, 64vw, calc(100vw - 96px));
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    align-items: stretch;
+    align-items: start;
     gap: 10px;
     inline-size: 100%;
     max-inline-size: 100%;
   }
 
+  /* PTZ pad + hint: one column aligned to the control set width. */
+  .pad-ptz {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    flex: 0 1 auto;
+    min-inline-size: 0;
+  }
+
   .ring-wrap {
     /* Leave room for the vertical audio stack on phones. */
-    --ring-size: min(220px, 64vw, calc(100vw - 96px));
     inline-size: var(--ring-size);
     aspect-ratio: 1;
-    flex: 0 1 auto;
-    align-self: start;
+    flex: 0 0 auto;
     display: grid;
   }
 
@@ -586,15 +596,17 @@ export const cardStyles = css`
   }
 
   .hint {
+    margin: 0;
     font-size: 11px;
     color: var(--tapo-muted);
     text-align: center;
-    max-inline-size: 240px;
+    inline-size: 100%;
+    max-inline-size: var(--ring-size);
     line-height: 1.4;
     letter-spacing: 0.03em;
   }
 
-  /* Compact custom audio — stretch to match PTZ ring block size. */
+  /* Compact custom audio — height matches PTZ ring, not ring+hint. */
   .pad-audio {
     display: flex;
     flex-direction: column;
@@ -602,7 +614,8 @@ export const cardStyles = css`
     justify-content: flex-start;
     gap: 8px;
     inline-size: 44px;
-    align-self: stretch;
+    block-size: var(--ring-size);
+    flex: 0 0 auto;
     touch-action: manipulation;
   }
 
