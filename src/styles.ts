@@ -47,6 +47,8 @@ export const cardStyles = css`
     display: grid;
     place-items: center;
     overflow: hidden;
+    /* Stream pinch/pan only — never reaches the PTZ pad. */
+    touch-action: none;
   }
 
   .stream-media,
@@ -62,6 +64,8 @@ export const cardStyles = css`
     object-fit: contain;
     background: #0e1012;
     z-index: 1;
+    transform-origin: center center;
+    will-change: transform;
   }
 
   /* HTML-native <video> fallback (last child after <source>s). */
@@ -255,34 +259,15 @@ export const cardStyles = css`
     transform-style: preserve-3d;
   }
 
-  .home-hit {
-    appearance: none;
-    border: 0;
-    background: transparent;
-    padding: 0;
-    margin: 0;
+  /* Orientation readout only — not a control (PTZ arrows move the camera). */
+  .orientation-view {
     width: 96px;
     height: 96px;
-    min-width: 44px;
-    min-height: 44px;
-    border-radius: 50%;
-    cursor: pointer;
     display: grid;
     place-items: center;
-    touch-action: manipulation;
+    pointer-events: none;
     z-index: 2;
-    /* Keep extruded faces in true 3D through the hit target. */
     transform-style: preserve-3d;
-  }
-
-  .home-hit:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-
-  .home-hit:focus-visible {
-    outline: 2px solid var(--tapo-amber);
-    outline-offset: 2px;
   }
 
   .cam3d {

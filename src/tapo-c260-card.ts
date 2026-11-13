@@ -13,10 +13,8 @@ import {
   DEFAULT_PITCH_STEP,
   DEFAULT_YAW_STEP,
   formatAngles,
-  resetOrientation,
 } from "./orientation";
 import {
-  calibrate,
   HoldRepeater,
   isPrivacyOn,
   nudgeDirection,
@@ -39,6 +37,16 @@ import type {
   PtzDirection,
   TapoC260CardConfig,
 } from "./types";
+import {
+  IDENTITY_VIEWPORT,
+  panBy,
+  touchDistance,
+  touchMidpoint,
+  viewportCss,
+  zoomAt,
+  type MediaIntrinsic,
+  type ViewportTransform,
+} from "./viewport-zoom";
 
 const CARD_TYPE = "tapo-c260-card";
 /** Cap retries after a failed attach so hass thrash cannot storm reconnects. */
@@ -61,6 +69,8 @@ export class TapoC260Card extends LitElement {
   /** Full HTTP candidate list (incl. HLS for hls.js). DOM uses a filtered subset. */
   @state() private _httpSources: HttpStreamCandidate[] = [];
   @state() private _error: string | null = null;
+  /** CSS viewport crop of the received stream — never drives PTZ. */
+  @state() private _viewport: ViewportTransform = IDENTITY_VIEWPORT;
 
   private _hold: HoldRepeater | null = null;
   private _videoRef = createRef<HTMLVideoElement>();
@@ -68,12 +78,24 @@ export class TapoC260Card extends LitElement {
   private _fallbackImgRef = createRef<HTMLImageElement>();
   /** Visible sibling for MJPEG live (cannot play inside <video>). */
   private _mjpegImgRef = createRef<HTMLImageElement>();
+  private _streamRef = createRef<HTMLDivElement>();
   private _angleHideTimer: ReturnType<typeof setTimeout> | null = null;
   private _retryTimer: ReturnType<typeof setTimeout> | null = null;
   private _streamHandle: StreamHandle | null = null;
   private _attachGeneration = 0;
   private _streamIdentity: string | undefined;
   private _retryAttempt = 0;
+  /** Active stream-area touch gesture (pinch / pan); independent of PTZ hold. */
+  private _gesture:
+    | { mode: "pan"; lastX: number; lastY: number }
+    | {
+        mode: "pinch";
+        startDist: number;
+        startScale: number;
+        startX: number;
+        startY: number;
+      }
+    | null = null;
 
   public setConfig(config: TapoC260CardConfig): void {
     if (!config) {
@@ -195,6 +217,11 @@ export class TapoC260Card extends LitElement {
     return `${primary}|${fallback}|${config.go2rtc?.trim() ?? ""}`;
   }
 
+  private _resetViewport(): void {
+    this._gesture = null;
+    this._viewport = IDENTITY_VIEWPORT;
+  }
+
   private _stopStream(): void {
     this._attachGeneration += 1;
     this._clearRetryTimer();
@@ -204,6 +231,7 @@ export class TapoC260Card extends LitElement {
     this._streamReady = false;
     this._streamMode = "none";
     this._httpSources = [];
+    this._resetViewport();
   }
 
   /**
@@ -259,6 +287,8 @@ export class TapoC260Card extends LitElement {
 
     const generation = ++this._attachGeneration;
     this._streamIdentity = identity;
+    // Rebind / restart always recenters the local viewport crop.
+    this._resetViewport();
 
     // Stop the previous session without flashing the placeholder when we already
     // had a ready frame — keep last paint until the new attach settles.
@@ -379,14 +409,147 @@ export class TapoC260Card extends LitElement {
     }
   }
 
-  private async _onHome(event: PointerEvent): Promise<void> {
-    const config = this._resolvedConfig;
-    if (!config || this._privacyLocked) return;
-    event.preventDefault();
-    this._pressing = true;
-    this._orientation = resetOrientation();
-    await calibrate(this.hass, config);
-    this._scheduleAngleHide(900);
+  private _mediaIntrinsic(): MediaIntrinsic | null {
+    const mode = this._streamMode;
+    if (mode === "mjpeg") {
+      const img = this._mjpegImgRef.value;
+      if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+        return { width: img.naturalWidth, height: img.naturalHeight };
+      }
+      return null;
+    }
+    const video = this._videoRef.value;
+    if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+      return { width: video.videoWidth, height: video.videoHeight };
+    }
+    return null;
+  }
+
+  private _streamBox(): { width: number; height: number; left: number; top: number } | null {
+    const el = this._streamRef.value;
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (!(r.width > 0) || !(r.height > 0)) return null;
+    return { width: r.width, height: r.height, left: r.left, top: r.top };
+  }
+
+  private _onStreamTouchStart(event: TouchEvent): void {
+    // Stream crop only — PTZ lives on .pad buttons with their own handlers.
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      const dist = touchDistance(event.touches[0], event.touches[1]);
+      if (!(dist > 0)) return;
+      this._gesture = {
+        mode: "pinch",
+        startDist: dist,
+        startScale: this._viewport.scale,
+        startX: this._viewport.x,
+        startY: this._viewport.y,
+      };
+      return;
+    }
+    if (event.touches.length === 1 && this._viewport.scale > 1) {
+      event.preventDefault();
+      this._gesture = {
+        mode: "pan",
+        lastX: event.touches[0].clientX,
+        lastY: event.touches[0].clientY,
+      };
+    } else {
+      this._gesture = null;
+    }
+  }
+
+  private _onStreamTouchMove(event: TouchEvent): void {
+    const box = this._streamBox();
+    if (!box) return;
+    const intrinsic = this._mediaIntrinsic();
+
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      const dist = touchDistance(event.touches[0], event.touches[1]);
+      if (!(dist > 0)) return;
+      const mid = touchMidpoint(event.touches[0], event.touches[1]);
+      const focalX = mid.x - box.left;
+      const focalY = mid.y - box.top;
+      let base = this._viewport;
+      if (this._gesture?.mode === "pinch") {
+        base = {
+          scale: this._gesture.startScale,
+          x: this._gesture.startX,
+          y: this._gesture.startY,
+        };
+        const nextScale =
+          this._gesture.startScale * (dist / this._gesture.startDist);
+        this._viewport = zoomAt(
+          base,
+          focalX,
+          focalY,
+          nextScale,
+          box.width,
+          box.height,
+          intrinsic,
+        );
+      } else {
+        this._gesture = {
+          mode: "pinch",
+          startDist: dist,
+          startScale: this._viewport.scale,
+          startX: this._viewport.x,
+          startY: this._viewport.y,
+        };
+      }
+      return;
+    }
+
+    if (
+      event.touches.length === 1 &&
+      this._gesture?.mode === "pan" &&
+      this._viewport.scale > 1
+    ) {
+      event.preventDefault();
+      const t = event.touches[0];
+      const dx = t.clientX - this._gesture.lastX;
+      const dy = t.clientY - this._gesture.lastY;
+      this._gesture = { mode: "pan", lastX: t.clientX, lastY: t.clientY };
+      this._viewport = panBy(
+        this._viewport,
+        dx,
+        dy,
+        box.width,
+        box.height,
+        intrinsic,
+      );
+    }
+  }
+
+  private _onStreamTouchEnd(event: TouchEvent): void {
+    if (event.touches.length === 0) {
+      this._gesture = null;
+      return;
+    }
+    if (event.touches.length === 1 && this._viewport.scale > 1) {
+      this._gesture = {
+        mode: "pan",
+        lastX: event.touches[0].clientX,
+        lastY: event.touches[0].clientY,
+      };
+      return;
+    }
+    if (event.touches.length === 2) {
+      const dist = touchDistance(event.touches[0], event.touches[1]);
+      if (dist > 0) {
+        this._gesture = {
+          mode: "pinch",
+          startDist: dist,
+          startScale: this._viewport.scale,
+          startX: this._viewport.x,
+          startY: this._viewport.y,
+        };
+      }
+      return;
+    }
+    this._gesture = null;
   }
 
   protected render() {
@@ -408,15 +571,29 @@ export class TapoC260Card extends LitElement {
     const showMjpeg = mode === "mjpeg";
     const showPlaceholder = !this._streamReady;
     const domSources = filterNativeSourceCandidates(this._httpSources);
+    const mediaTransform = viewportCss(this._viewport);
+    const mediaStyle = (visible: boolean) =>
+      styleMap({
+        display: visible ? "block" : "none",
+        transform: mediaTransform,
+      });
 
     return html`
       <ha-card class="card">
         <div class="layout">
-          <div class="stream" aria-label="Camera stream">
+          <div
+            class="stream"
+            ${ref(this._streamRef)}
+            aria-label="Camera stream"
+            @touchstart=${this._onStreamTouchStart}
+            @touchmove=${this._onStreamTouchMove}
+            @touchend=${this._onStreamTouchEnd}
+            @touchcancel=${this._onStreamTouchEnd}
+          >
             <video
               ${ref(this._videoRef)}
               class="stream-media"
-              style=${styleMap({ display: showVideo ? "block" : "none" })}
+              style=${mediaStyle(showVideo)}
               playsinline
               muted
             >
@@ -432,7 +609,7 @@ export class TapoC260Card extends LitElement {
             <img
               ${ref(this._mjpegImgRef)}
               class="stream-media"
-              style=${styleMap({ display: showMjpeg ? "block" : "none" })}
+              style=${mediaStyle(showMjpeg)}
               alt="Camera"
             />
             ${showPlaceholder
@@ -470,27 +647,21 @@ export class TapoC260Card extends LitElement {
                 ${this._dirButton("left", "◀", "Pan left")}
                 ${this._dirButton("right", "▶", "Pan right")}
                 <div class="stage">
-                  <button
-                    class="home-hit"
-                    type="button"
-                    aria-label="Home / calibrate"
-                    title="Home / calibrate"
-                    ?disabled=${locked || !config.ptz.calibrate}
-                    @pointerdown=${this._onHome}
-                    @pointercancel=${() => {
-                      this._pressing = false;
-                    }}
+                  <div
+                    class="orientation-view"
+                    aria-hidden="true"
+                    title="Camera orientation"
                   >
                     <div class="cam3d">
                       ${camera3d(cameraTransform(this._orientation))}
                     </div>
-                  </button>
+                  </div>
                 </div>
               </div>
             </div>
 
             <p class="hint">
-              Click to nudge · hold to repeat · center = home/calibrate
+              Click to nudge · hold to repeat · center shows orientation
             </p>
           </div>
         </div>
