@@ -15,7 +15,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Full history + tags so we can compare package.json to HEAD^ and existing tags.
           fetch-depth: 0
@@ -54,7 +54,7 @@ jobs:
             echo "Version changed ${OLD_VERSION:-<none>} → ${NEW_VERSION}; publishing release"
           fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.version.outputs.changed == 'true'
         with:
           node-version: "24"
@@ -74,7 +74,7 @@ jobs:
           git tag "${{ steps.version.outputs.tag }}"
           git push origin "${{ steps.version.outputs.tag }}"
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         if: steps.version.outputs.changed == 'true'
         with:
           tag_name: ${{ steps.version.outputs.tag }}
