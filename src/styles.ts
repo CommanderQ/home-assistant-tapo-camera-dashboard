@@ -126,7 +126,7 @@ export const cardStyles = css`
     opacity: 1;
   }
 
-  /* Lower control row: horizontal; pad block-start, media block-end. */
+  /* Lower control row: horizontal; audio column stretches to ring height. */
   .pad-controls {
     display: flex;
     flex-direction: row;
@@ -594,15 +594,15 @@ export const cardStyles = css`
     letter-spacing: 0.03em;
   }
 
-  /* Compact custom audio — flex column, pinned to block-end of the row. */
+  /* Compact custom audio — stretch to match PTZ ring block size. */
   .pad-audio {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: end;
+    justify-content: flex-start;
     gap: 8px;
     inline-size: 44px;
-    align-self: end;
+    align-self: stretch;
     touch-action: manipulation;
   }
 
@@ -643,14 +643,16 @@ export const cardStyles = css`
   }
 
   .audio-volume {
-    /* Vertical range: low at bottom, high at top. */
+    /* Vertical range: low at bottom, high at top; fills leftover column height. */
     writing-mode: vertical-lr;
     direction: rtl;
     -webkit-appearance: slider-vertical;
     appearance: slider-vertical;
     /* Physical width/height: WebKit slider-vertical + writing-mode pairing. */
     width: 28px;
-    height: min(132px, 38vw);
+    flex: 1 1 auto;
+    min-height: 64px;
+    height: 100%;
     margin: 0;
     padding: 0;
     accent-color: var(--tapo-amber);
