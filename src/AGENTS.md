@@ -1,6 +1,6 @@
 # AGENTS.md — `src/`
 
-Card implementation lives here. Read root [`AGENTS.md`](../AGENTS.md) first.
+Card implementation lives here. Read root [`AGENTS.md`](../AGENTS.md) first (including commit / release note categories).
 
 ## Conventions
 

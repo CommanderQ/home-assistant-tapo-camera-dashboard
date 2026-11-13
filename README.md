@@ -164,6 +164,7 @@ GitHub Release (HACS asset `tapo-c260-card.js`) is published **only when** `pack
 - Docs, UI, and other commits that leave the version unchanged do **not** cut a release
 - There is **no** automatic patch bump
 - To ship: bump `version` in `package.json` (keep the lockfile in sync) → push `main` → Actions builds and attaches `tapo-c260-card.js`
+- Release notes use `# Release x.x.x` with consolidated Features / Fixes / Changes / Other (and PR links); see [`docs/commit-and-release.md`](docs/commit-and-release.md)
 
 ## Local demo (no Home Assistant)
 

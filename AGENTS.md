@@ -33,6 +33,26 @@ Do not invent a parallel integration or hard-code cloud credentials in the card.
 - Stream attach / retry lives in `src/stream.ts`; keep PTZ from tearing down the stream
 - README documents URL resolution (`ws` / `http` / stream name)
 
+## Commit messages
+
+Every commit uses a short subject plus a **markdown body** with only the categories that apply:
+
+```markdown
+## Features
+- Concise user-facing capability
+
+## Fixes
+- Concise bug fix
+
+## Changes
+- Non-fix behavior or structural change
+
+## Other
+- Docs, CI, chores, misc
+```
+
+Keep list items concise. Omit empty categories. Details: [`docs/commit-and-release.md`](docs/commit-and-release.md).
+
 ## Releases: only on `package.json` version bump
 
 `.github/workflows/release.yml` publishes a GitHub Release **only when** `package.json` `version` changes on `main` vs `HEAD^` **and** tag `vX.Y.Z` does not already exist.
@@ -41,6 +61,30 @@ Do not invent a parallel integration or hard-code cloud credentials in the card.
 - Docs-only, style, CI, and feature commits that leave version unchanged must **not** cut a release
 - There is **no** auto patch-bump bot
 - To ship: bump version deliberately → push `main` → workflow builds and attaches `tapo-c260-card.js`
+
+### Version bump commit + GitHub Release notes
+
+The bump commit body and the GitHub Release notes share this format (version from `package.json`):
+
+```markdown
+# Release x.x.x
+
+## Features
+- … ([#12](https://github.com/CommanderQ/home-assistant-tapo-camera-dashboard/pull/12))
+
+## Fixes
+- …
+
+## Changes
+- …
+
+## Other
+- …
+```
+
+- Consolidate **all commits since the previous version** into those categories
+- Include a **PR link per change/PR** when one exists; omit empty categories
+- Workflow uses `scripts/generate-release-notes.mjs` (prefers an authored `# Release` bump body; otherwise consolidates commit sections). Do **not** rely on GitHub `generate_release_notes`
 
 ## Layout / UX preferences (keep these)
 
@@ -80,6 +124,8 @@ Live press-to-talk (browser mic → C260 speaker) is **researched and deferred**
 | Lovelace editor | `src/editor.ts` |
 | Local mock demo | `demo/` |
 | HACS release workflow | `.github/workflows/release.yml` |
+| Release notes generator | `scripts/generate-release-notes.mjs` |
+| Commit / release conventions | `docs/commit-and-release.md` |
 | Deferred plans | `docs/future/` |
 
 ## Commands
@@ -100,3 +146,4 @@ npm run verify:sources
 4. Keep `tapo_control` as the entity source of truth; keep go2rtc optional.
 5. Preserve phone-first hit targets and Concept C pad aesthetics.
 6. After stream/UI changes, prefer `npm run typecheck` / `npm run build` before claiming done.
+7. Write commit bodies with `## Features` / `## Fixes` / `## Changes` / `## Other` list items; on version bumps, use `# Release x.x.x` consolidated notes with PR links.

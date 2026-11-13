@@ -8,12 +8,14 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -35,6 +37,12 @@ jobs:
             OLD_VERSION=""
           fi
           echo "previous=${OLD_VERSION}" >> "$GITHUB_OUTPUT"
+
+          if [ -n "${OLD_VERSION}" ] && git rev-parse -q --verify "refs/tags/v${OLD_VERSION}" >/dev/null; then
+            echo "previous_tag=v${OLD_VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "previous_tag=" >> "$GITHUB_OUTPUT"
+          fi
 
           if git rev-parse -q --verify "refs/tags/v${NEW_VERSION}" >/dev/null; then
             TAG_EXISTS=true
@@ -66,6 +74,19 @@ jobs:
       - run: npm run build
         if: steps.version.outputs.changed == 'true'
 
+      - name: Generate release notes
+        if: steps.version.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          node scripts/generate-release-notes.mjs \
+            "${{ steps.version.outputs.version }}" \
+            "${{ steps.version.outputs.previous_tag }}" \
+            release-notes.md
+          echo "----- release-notes.md -----"
+          cat release-notes.md
+
       - name: Create tag
         if: steps.version.outputs.changed == 'true'
         run: |
@@ -78,9 +99,10 @@ jobs:
         if: steps.version.outputs.changed == 'true'
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: release-notes.md
           # Basename is tapo-c260-card.js — matches hacs.json "filename".
           files: dist/tapo-c260-card.js
-          generate_release_notes: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
