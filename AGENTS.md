@@ -64,21 +64,19 @@ Keep list items concise. Omit empty categories. Details: [`docs/commit-and-relea
 
 ### Version bump commit + GitHub Release notes
 
-The bump commit’s **full body** is the GitHub Release body (workflow: `git log -1 --format=%b`). Author it in this format (version from `package.json`):
+The bump commit’s **full body** is the GitHub Release body (workflow: `git log -1 --format=%b`). Author it with these **top-level** headings only — do **not** include a `# Release x.x.x` heading (the release title/`name` already carries the version):
 
 ```markdown
-# Release x.x.x
-
-## Features
+# Features
 - … ([#12](https://github.com/CommanderQ/home-assistant-tapo-camera-dashboard/pull/12))
 
-## Fixes
+# Fixes
 - …
 
-## Changes
+# Changes
 - …
 
-## Other
+# Other
 - …
 ```
 
@@ -145,4 +143,4 @@ npm run verify:sources
 4. Keep `tapo_control` as the entity source of truth; keep go2rtc optional.
 5. Preserve phone-first hit targets and Concept C pad aesthetics.
 6. After stream/UI changes, prefer `npm run typecheck` / `npm run build` before claiming done.
-7. Write commit bodies with `## Features` / `## Fixes` / `## Changes` / `## Other` list items; on version bumps, use `# Release x.x.x` consolidated notes with PR links.
+7. Write commit bodies with `## Features` / `## Fixes` / `## Changes` / `## Other` list items; on version bumps, use `# Features` / `# Fixes` / `# Changes` / `# Other` consolidated notes with PR links (no `# Release x.x.x` heading).

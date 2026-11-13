@@ -29,25 +29,23 @@ Rules:
 
 ## Version bump commit + GitHub Release
 
-When shipping, bump `package.json` (and lockfile) in a dedicated commit. That commit’s **full body** becomes the GitHub Release body as-is (workflow reads `git log -1 --format=%b` on the bump commit). Author it in this shape:
+When shipping, bump `package.json` (and lockfile) in a dedicated commit. That commit’s **full body** becomes the GitHub Release body as-is (workflow reads `git log -1 --format=%b` on the bump commit). Author it with these **top-level** headings only — do **not** include a `# Release x.x.x` heading (the release title/`name` already carries the version):
 
 ```markdown
-# Release x.x.x
-
-## Features
+# Features
 - … ([#12](https://github.com/CommanderQ/home-assistant-tapo-camera-dashboard/pull/12))
 
-## Fixes
+# Fixes
 - …
 
-## Changes
+# Changes
 - …
 
-## Other
+# Other
 - …
 ```
 
-- `x.x.x` comes from `package.json` `version` (tag will be `vX.Y.Z`)
+- Version still comes from `package.json` `version` (tag will be `vX.Y.Z`; release `name` is `Release x.x.x`)
 - Categories **consolidate** all commits since the previous version tag
 - Include a **PR link per change/PR** when a PR exists
 - Omit empty categories
