@@ -572,6 +572,70 @@ export const cardStyles = css`
     letter-spacing: 0.03em;
   }
 
+  /* Compact custom audio chrome — not native video controls; above media, below privacy. */
+  .stream-audio {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 4px;
+    border-radius: 8px;
+    background: rgba(14, 16, 18, 0.72);
+    border: 1px solid rgba(90, 99, 108, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    /* Own touch surface — pinch/pan stay on the stream behind. */
+    touch-action: manipulation;
+    pointer-events: auto;
+  }
+
+  .audio-mute {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 6px;
+    border: 1px solid var(--tapo-metal-hi);
+    background: linear-gradient(180deg, #4a525a, #2e343a);
+    color: var(--tapo-ink);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    touch-action: manipulation;
+  }
+
+  .audio-mute:hover,
+  .audio-mute:focus-visible {
+    border-color: var(--tapo-amber);
+    color: var(--tapo-amber);
+    outline: none;
+  }
+
+  .audio-mute.muted {
+    color: var(--tapo-muted);
+  }
+
+  .audio-icon {
+    width: 22px;
+    height: 22px;
+    display: block;
+  }
+
+  .audio-volume {
+    width: min(36vw, 120px);
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--tapo-amber);
+    cursor: pointer;
+    touch-action: none;
+  }
+
   .privacy-banner {
     position: absolute;
     inset: 0;

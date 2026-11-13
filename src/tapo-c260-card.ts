@@ -54,6 +54,24 @@ const MAX_ATTACH_RETRIES = 5;
 const ATTACH_RETRY_BASE_MS = 1500;
 const ATTACH_RETRY_MAX_MS = 30000;
 
+const muteIconOn = html`
+  <svg class="audio-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      fill="currentColor"
+      d="M4 9v6h3.2L12 19.5V4.5L7.2 9H4zm11.5 3c0-1.8-1-3.3-2.5-4v8c1.5-.7 2.5-2.2 2.5-4zm2.5 0c0 2.9-1.7 5.4-4.1 6.6l.9 1.7A8.5 8.5 0 0 0 20.5 12a8.5 8.5 0 0 0-5.7-8.3l-.9 1.7A6.5 6.5 0 0 1 18 12z"
+    />
+  </svg>
+`;
+
+const muteIconMuted = html`
+  <svg class="audio-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      fill="currentColor"
+      d="M4 9v6h3.2L12 19.5V4.5L7.2 9H4zm12.7-1.3-1.4 1.4 2.1 2.1-2.1 2.1 1.4 1.4 2.1-2.1 2.1 2.1 1.4-1.4-2.1-2.1 2.1-2.1-1.4-1.4-2.1 2.1-2.1-2.1z"
+    />
+  </svg>
+`;
+
 @customElement("tapo-c260-card")
 export class TapoC260Card extends LitElement {
   static styles = cardStyles;
@@ -71,6 +89,9 @@ export class TapoC260Card extends LitElement {
   @state() private _error: string | null = null;
   /** CSS viewport crop of the received stream — never drives PTZ. */
   @state() private _viewport: ViewportTransform = IDENTITY_VIEWPORT;
+  /** Default muted so autoplay is allowed; custom chrome only (no native controls). */
+  @state() private _muted = true;
+  @state() private _volume = 1;
 
   private _hold: HoldRepeater | null = null;
   private _videoRef = createRef<HTMLVideoElement>();
@@ -552,6 +573,43 @@ export class TapoC260Card extends LitElement {
     this._gesture = null;
   }
 
+  /** Keep mute/volume chrome from starting stream pinch/pan gestures. */
+  private _stopStreamGesture(event: Event): void {
+    event.stopPropagation();
+  }
+
+  private _toggleMute(event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const next = !this._muted;
+    if (!next && this._volume <= 0) {
+      this._volume = 0.7;
+    }
+    this._muted = next;
+    this._applyAudioToVideo();
+  }
+
+  private _onVolumeInput(event: Event): void {
+    event.stopPropagation();
+    const input = event.target as HTMLInputElement;
+    const value = Number(input.value);
+    if (!Number.isFinite(value)) return;
+    this._volume = Math.min(1, Math.max(0, value));
+    if (this._volume > 0 && this._muted) {
+      this._muted = false;
+    } else if (this._volume <= 0) {
+      this._muted = true;
+    }
+    this._applyAudioToVideo();
+  }
+
+  private _applyAudioToVideo(): void {
+    const video = this._videoRef.value;
+    if (!video) return;
+    video.muted = this._muted;
+    video.volume = this._volume;
+  }
+
   protected render() {
     if (this._error) {
       return html`<ha-card class="card"><div class="error">${this._error}</div></ha-card>`;
@@ -595,7 +653,8 @@ export class TapoC260Card extends LitElement {
               class="stream-media"
               style=${mediaStyle(showVideo)}
               playsinline
-              muted
+              .muted=${this._muted}
+              .volume=${this._volume}
             >
               ${domSources.map(
                 (s) => html`<source src=${s.src} type=${s.type} />`,
@@ -621,6 +680,37 @@ export class TapoC260Card extends LitElement {
                   </div>
                 `
               : nothing}
+            <div
+              class="stream-audio"
+              @touchstart=${this._stopStreamGesture}
+              @touchmove=${this._stopStreamGesture}
+              @touchend=${this._stopStreamGesture}
+              @touchcancel=${this._stopStreamGesture}
+              @pointerdown=${this._stopStreamGesture}
+            >
+              <button
+                class=${classMap({
+                  "audio-mute": true,
+                  muted: this._muted,
+                })}
+                type="button"
+                aria-label=${this._muted ? "Unmute stream" : "Mute stream"}
+                aria-pressed=${this._muted ? "true" : "false"}
+                @click=${this._toggleMute}
+              >
+                ${this._muted ? muteIconMuted : muteIconOn}
+              </button>
+              <input
+                class="audio-volume"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                .value=${String(this._volume)}
+                aria-label="Stream volume"
+                @input=${this._onVolumeInput}
+              />
+            </div>
             ${locked
               ? html`<div class="privacy-banner">Privacy on</div>`
               : nothing}
