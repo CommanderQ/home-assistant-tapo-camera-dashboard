@@ -26,7 +26,7 @@ After the card resource is loaded, use the dashboard UI:
 
 1. Edit a dashboard → **Add card** → search **Tapo C260 Camera Card**.
 2. Select your **Tapo camera device** (from `tapo_control`) — camera SD/HD, PTZ buttons, angle, calibrate, preset, and privacy fill in automatically.
-3. Optionally set title / go2rtc / hold interval. Open **Entity overrides** only if a mapping needs a tweak.
+3. Optionally set title / hold interval. Open **Advanced** for go2rtc, or **Entity overrides** only if a mapping needs a tweak.
 4. Save.
 
 ### YAML

@@ -44,13 +44,6 @@ const EDITOR_SCHEMA: HaFormSchema[] = [
     selector: { text: {} },
   },
   {
-    name: "go2rtc",
-    label: "go2rtc stream (optional)",
-    helper:
-      "go2rtc stream name, or absolute ws/http URL to /api/ws?src=… (or /api/webrtc/ws). Empty = HA camera WebRTC / multi-source MP4+HLS.",
-    selector: { text: {} },
-  },
-  {
     name: "hold_interval_ms",
     label: "Hold interval (ms)",
     helper: "Press-and-hold repeat interval (default 350).",
@@ -63,6 +56,22 @@ const EDITOR_SCHEMA: HaFormSchema[] = [
         unit_of_measurement: "ms",
       },
     },
+  },
+  {
+    name: "advanced",
+    type: "expandable",
+    title: "Advanced",
+    flatten: true,
+    expanded: false,
+    schema: [
+      {
+        name: "go2rtc",
+        label: "go2rtc stream (optional)",
+        helper:
+          "go2rtc stream name, or absolute ws/http URL to /api/ws?src=… (or /api/webrtc/ws). Empty = HA camera WebRTC / multi-source MP4+HLS.",
+        selector: { text: {} },
+      },
+    ],
   },
   {
     name: "entities",
@@ -270,8 +279,8 @@ export class TapoC260CardEditor extends LitElement {
         @value-changed=${this._valueChanged}
       ></ha-form>
       <p class="hint">
-        Select the Tapo device to auto-fill camera / PTZ / privacy. Open Entity
-        overrides only if you need to tweak associations.
+        Select the Tapo device to auto-fill camera / PTZ / privacy. Open Advanced
+        for go2rtc, or Entity overrides only if you need to tweak associations.
       </p>
     `;
   }
