@@ -125,14 +125,13 @@ export const cardStyles = css`
     opacity: 1;
   }
 
-  /* Lower control row: pad at block-start, media at block-end. */
+  /* Lower control row: horizontal; pad block-start, media block-end. */
   .pad-controls {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: max-content;
-    justify-content: center;
-    align-items: start;
-    column-gap: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 10px;
     width: 100%;
     max-width: 100%;
   }
@@ -143,6 +142,7 @@ export const cardStyles = css`
     width: var(--ring-size);
     height: var(--ring-size);
     position: relative;
+    flex: 0 1 auto;
     align-self: start;
   }
 
