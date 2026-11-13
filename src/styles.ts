@@ -51,15 +51,11 @@ export const cardStyles = css`
     touch-action: none;
   }
 
-  .stream-media,
-  .stream-placeholder {
+  .stream-media {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-  }
-
-  .stream-media {
     /* Native aspect — letterbox instead of crop/stretch. */
     object-fit: contain;
     background: #0e1012;
@@ -77,8 +73,9 @@ export const cardStyles = css`
   }
 
   .stream-placeholder {
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     color: var(--tapo-muted);
     z-index: 1;
