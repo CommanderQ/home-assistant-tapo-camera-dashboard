@@ -12,14 +12,14 @@ export const cardStyles = css`
     --tapo-amber: #d4a017;
     --tapo-amber-dim: #8a6a12;
     display: block;
-    width: 100%;
-    height: auto;
+    inline-size: 100%;
+    block-size: auto;
   }
 
   ha-card,
   .card {
-    width: 100%;
-    height: auto;
+    inline-size: 100%;
+    block-size: auto;
     background: linear-gradient(160deg, #32383e, #23272b 60%, #1e2226);
     border: 1px solid #4a525a;
     border-radius: 10px;
@@ -37,25 +37,25 @@ export const cardStyles = css`
     flex-direction: column;
   }
 
+  /* Single-cell grid: media, placeholder, and privacy banner stack. */
   .stream {
     position: relative;
     aspect-ratio: 16 / 10;
-    min-height: 180px;
+    min-block-size: 180px;
     background:
       linear-gradient(180deg, #3d4a52 0%, #2a3338 50%, #1f2629 100%);
-    border-bottom: 1px solid #15181b;
+    border-block-end: 1px solid #15181b;
     display: grid;
-    place-items: center;
+    grid-template: 1fr / 1fr;
     overflow: hidden;
     /* Stream pinch/pan only — never reaches the PTZ pad. */
     touch-action: none;
   }
 
   .stream-media {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+    grid-area: 1 / 1;
+    inline-size: 100%;
+    block-size: 100%;
     /* Native aspect — letterbox instead of crop/stretch. */
     object-fit: contain;
     background: #0e1012;
@@ -66,13 +66,14 @@ export const cardStyles = css`
 
   /* HTML-native <video> fallback (last child after <source>s). */
   video.stream-media > .stream-fallback {
-    width: 100%;
-    height: 100%;
+    inline-size: 100%;
+    block-size: 100%;
     object-fit: contain;
     background: #0e1012;
   }
 
   .stream-placeholder {
+    grid-area: 1 / 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -85,7 +86,7 @@ export const cardStyles = css`
   .stream-placeholder strong {
     display: block;
     color: var(--tapo-ink);
-    margin-bottom: 4px;
+    margin-block-end: 4px;
     letter-spacing: 0.06em;
   }
 
@@ -111,7 +112,7 @@ export const cardStyles = css`
   }
 
   .angles {
-    min-height: 1.2em;
+    min-block-size: 1.2em;
     font-size: 11px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -132,23 +133,24 @@ export const cardStyles = css`
     justify-content: space-between;
     align-items: stretch;
     gap: 10px;
-    width: 100%;
-    max-width: 100%;
+    inline-size: 100%;
+    max-inline-size: 100%;
   }
 
   .ring-wrap {
     /* Leave room for the vertical audio stack on phones. */
     --ring-size: min(220px, 64vw, calc(100vw - 96px));
-    width: var(--ring-size);
-    height: var(--ring-size);
-    position: relative;
+    inline-size: var(--ring-size);
+    aspect-ratio: 1;
     flex: 0 1 auto;
     align-self: start;
+    display: grid;
   }
 
+  /* Single-cell grid: ticks, PTZ buttons, and stage stack/align. */
   .ring {
-    width: 100%;
-    height: 100%;
+    inline-size: 100%;
+    block-size: 100%;
     border-radius: 50%;
     background: radial-gradient(circle at 40% 30%, #4a525a, #2a2e32 55%, #1a1c1e);
     border: 2px solid #5a636c;
@@ -156,13 +158,13 @@ export const cardStyles = css`
       inset 0 0 0 8px #23272b,
       inset 0 0 0 9px #4a525a,
       0 10px 24px rgba(0, 0, 0, 0.5);
-    position: relative;
+    display: grid;
+    grid-template: 1fr / 1fr;
     touch-action: none;
   }
 
   .ticks {
-    position: absolute;
-    inset: 0;
+    grid-area: 1 / 1;
     border-radius: 50%;
     background: conic-gradient(
       from 0deg,
@@ -195,11 +197,11 @@ export const cardStyles = css`
   }
 
   .btn {
-    position: absolute;
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    min-height: 48px;
+    grid-area: 1 / 1;
+    inline-size: 48px;
+    block-size: 48px;
+    min-inline-size: 48px;
+    min-block-size: 48px;
     border-radius: 6px;
     border: 1px solid var(--tapo-metal-hi);
     background: linear-gradient(180deg, #4a525a, #2e343a);
@@ -240,29 +242,29 @@ export const cardStyles = css`
   }
 
   .btn.up {
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
+    justify-self: center;
+    align-self: start;
+    margin-block-start: 12px;
   }
   .btn.down {
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
+    justify-self: center;
+    align-self: end;
+    margin-block-end: 12px;
   }
   .btn.left {
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
+    justify-self: start;
+    align-self: center;
+    margin-inline-start: 12px;
   }
   .btn.right {
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
+    justify-self: end;
+    align-self: center;
+    margin-inline-end: 12px;
   }
 
   .stage {
-    position: absolute;
-    inset: 52px;
+    grid-area: 1 / 1;
+    margin: 52px;
     perspective: 520px;
     perspective-origin: 50% 45%;
     display: grid;
@@ -273,8 +275,8 @@ export const cardStyles = css`
 
   /* Orientation readout only — not a control (PTZ arrows move the camera). */
   .orientation-view {
-    width: 96px;
-    height: 96px;
+    inline-size: 96px;
+    aspect-ratio: 1;
     display: grid;
     place-items: center;
     pointer-events: none;
@@ -283,13 +285,17 @@ export const cardStyles = css`
   }
 
   .cam3d {
-    width: 88px;
-    height: 88px;
+    inline-size: 88px;
+    aspect-ratio: 1;
     position: relative;
     transform-style: preserve-3d;
     pointer-events: none;
   }
 
+  /*
+   * CSS 3D extruded model — physical positioning and explicit face sizes are
+   * required for rotateX/Y box geometry; flex/grid cannot replace them.
+   */
   .cam-rig {
     position: absolute;
     inset: 0;
@@ -512,12 +518,13 @@ export const cardStyles = css`
     transform: rotateX(90deg) translateZ(17px);
     display: grid;
     place-items: start center;
-    padding-top: 4px;
+    padding-block-start: 4px;
   }
   .cam-body .face.bottom {
     transform: rotateX(-90deg) translateZ(17px);
   }
 
+  /* Decorative overlays on fixed-size 3D faces — absolute stays. */
   .led {
     position: absolute;
     top: 5px;
@@ -575,14 +582,14 @@ export const cardStyles = css`
     border-radius: 2px 2px 0 0;
     background: linear-gradient(180deg, #3a4046, #2a2e32);
     border: 1px solid #5a636c;
-    border-bottom: 0;
+    border-block-end: 0;
   }
 
   .hint {
     font-size: 11px;
     color: var(--tapo-muted);
     text-align: center;
-    max-width: 240px;
+    max-inline-size: 240px;
     line-height: 1.4;
     letter-spacing: 0.03em;
   }
@@ -592,18 +599,18 @@ export const cardStyles = css`
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: end;
     gap: 8px;
-    width: 44px;
+    inline-size: 44px;
     align-self: end;
     touch-action: manipulation;
   }
 
   .audio-mute {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    inline-size: 44px;
+    block-size: 44px;
+    min-inline-size: 44px;
+    min-block-size: 44px;
     padding: 0;
     border-radius: 6px;
     border: 1px solid var(--tapo-metal-hi);
@@ -630,8 +637,8 @@ export const cardStyles = css`
   }
 
   .audio-icon {
-    width: 22px;
-    height: 22px;
+    inline-size: 22px;
+    block-size: 22px;
     display: block;
   }
 
@@ -641,6 +648,7 @@ export const cardStyles = css`
     direction: rtl;
     -webkit-appearance: slider-vertical;
     appearance: slider-vertical;
+    /* Physical width/height: WebKit slider-vertical + writing-mode pairing. */
     width: 28px;
     height: min(132px, 38vw);
     margin: 0;
@@ -651,8 +659,7 @@ export const cardStyles = css`
   }
 
   .privacy-banner {
-    position: absolute;
-    inset: 0;
+    grid-area: 1 / 1;
     z-index: 4;
     display: grid;
     place-items: center;
