@@ -1,7 +1,7 @@
 {
   "name": "home-assistant-tapo-camera-dashboard",
-  "version": "0.1.12",
-  "description": "Home Assistant Lovelace card for Tapo C260 — live stream + circular PTZ with perspective camera graphic",
+  "version": "0.1.13",
+  "description": "Home Assistant Lovelace card for Tapo C260 â€” live stream + circular PTZ with perspective camera graphic",
   "type": "module",
   "main": "dist/tapo-c260-card.js",
   "module": "dist/tapo-c260-card.js",
