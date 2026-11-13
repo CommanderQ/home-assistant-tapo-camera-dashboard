@@ -174,7 +174,6 @@ export class TapoC260Card extends LitElement {
     return {
       camera: "camera.living_room_sd",
       camera_hd: "camera.living_room_hd",
-      title: "Feed · C260",
       ptz: {
         up: "button.living_room_move_up",
         down: "button.living_room_move_down",

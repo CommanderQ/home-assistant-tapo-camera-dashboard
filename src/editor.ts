@@ -38,12 +38,6 @@ const EDITOR_SCHEMA: HaFormSchema[] = [
     },
   },
   {
-    name: "title",
-    label: "Title",
-    helper: "Stream chrome label (defaults to the device name).",
-    selector: { text: {} },
-  },
-  {
     name: "hold_interval_ms",
     label: "Hold interval (ms)",
     helper: "Press-and-hold repeat interval (default 350).",
@@ -205,7 +199,6 @@ function scrubConfig(config: TapoC260CardConfig): TapoC260CardConfig {
   for (const key of [
     "device",
     "camera_hd",
-    "title",
     "go2rtc",
     "privacy",
   ] as const) {

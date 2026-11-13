@@ -25,7 +25,6 @@ card.setConfig({
   // Absolute go2rtc URL → Lit renders stream.mp4 + stream.m3u8 <source> children
   // (demo host has no HA base URL, so stream names alone would not resolve).
   go2rtc: "http://127.0.0.1:1984/api/ws?src=living_room",
-  title: "Feed · C260",
   ptz: {
     up: "button.living_room_move_up",
     down: "button.living_room_move_down",

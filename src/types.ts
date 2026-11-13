@@ -12,8 +12,6 @@ export interface TapoC260CardConfig {
   camera_hd?: string;
   /** Optional go2rtc stream name or absolute WebRTC URL. */
   go2rtc?: string;
-  /** Optional title shown in the stream chrome. */
-  title?: string;
   ptz: {
     up: string;
     down: string;

@@ -26,7 +26,7 @@ After the card resource is loaded, use the dashboard UI:
 
 1. Edit a dashboard → **Add card** → search **Tapo C260 Camera Card**.
 2. Select your **Tapo camera device** (from `tapo_control`) — camera SD/HD, PTZ buttons, angle, calibrate, preset, and privacy fill in automatically.
-3. Optionally set title / hold interval. Open **Advanced** for go2rtc, or **Entity overrides** only if a mapping needs a tweak.
+3. Optionally set hold interval. Open **Advanced** for go2rtc, or **Entity overrides** only if a mapping needs a tweak.
 4. Save.
 
 ### YAML
@@ -37,7 +37,6 @@ type: custom:tapo-c260-card
 # device: <tapo_control device id>
 camera: camera.living_room_sd
 camera_hd: camera.living_room_hd
-title: Feed · C260
 # Optional go2rtc — see “go2rtc URL expectations” below
 # go2rtc: living_room
 # go2rtc: ws://192.168.1.10:1984/api/ws?src=living_room
@@ -87,7 +86,6 @@ Ensure go2rtc knows the same stream name you put in `go2rtc` (or in the absolute
 | `device` | `tapo_control` device id — auto-associates entities |
 | `camera_hd` | Preferred HD camera entity (SD/`camera` stays a fallback source; no PTZ switch) |
 | `go2rtc` | Stream name or absolute go2rtc `/api/ws` URL (see above) |
-| `title` | Stream chrome label (default `Feed · C260` or device name) |
 | `hold_interval_ms` | Hold-to-repeat interval (default `350`) |
 | `privacy` | Privacy switch — disables the pad when `on` |
 | `ptz.preset` | Optional preset select entity |

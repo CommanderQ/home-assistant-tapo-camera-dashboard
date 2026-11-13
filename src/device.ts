@@ -80,10 +80,6 @@ export function resolveConfigFromDevice(
   const privacy =
     findBySuffixes(switches, ["_privacy"]) ?? base.privacy;
 
-  const device = hass?.devices?.[deviceId];
-  const deviceName =
-    device?.name_by_user || device?.name || undefined;
-
   const next: Partial<TapoC260CardConfig> = {
     ...base,
     device: deviceId,
@@ -96,10 +92,6 @@ export function resolveConfigFromDevice(
 
   if (privacy) next.privacy = privacy;
   else delete next.privacy;
-
-  if (!next.title && deviceName) {
-    next.title = deviceName;
-  }
 
   // Drop empty optional ptz keys
   if (!next.ptz?.angle) delete next.ptz!.angle;
