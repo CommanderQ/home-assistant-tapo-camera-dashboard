@@ -2,21 +2,27 @@
 
 Home Assistant Lovelace card (`custom:tapo-c260-card`) for a **Tapo C260**: live stream viewport, compact circular PTZ pad, and a Concept C industrial 3D orientation graphic.
 
+![Local demo — stream viewport, circular PTZ pad with display-only 3D orientation, mute and volume](docs/demo-snapshot.png)
+
 **Required companion:** HACS [Tapo: Cameras Control](https://github.com/JurajNyiri/HomeAssistant-Tapo-Control) (`tapo_control`). This card does **not** replace that integration — it presses the move / calibrate buttons and reads movement angle / privacy entities that `tapo_control` exposes.
 
-## Features (v1 scaffold)
+## Features
 
 - Portrait, stream-dominant layout with circular pad below the feed
 - Sections layout defaults to **full width** and **height: auto** (fit content)
 - Click-to-nudge **and** press-and-hold repeat on pan/tilt
-- Center control = home / calibrate
+- Center of the pad is a **display-only** 3D orientation graphic (not a button)
 - Yaw / pitch readout **on press only**, and only once orientation is known (hidden when unknown)
+- Stream **pinch-to-zoom** and one-finger **pan** when zoomed (local viewport crop; never drives PTZ; resets on reconnect)
+- Downlink **mute toggle + volume slider** (default muted for autoplay; no native video controls)
 - Live camera stream: **WebRTC → multi-`<source>` MP4 (hls.js for HLS on Chrome) → MJPEG** (snapshot last)
 - Prefers **HD when `camera_hd` is set** (primary entity + earlier HTTP candidates); SD is a fallback only — **no runtime SD↔HD switching**
 - Phone-first touch targets (≥44px)
 - Single camera
-- Lovelace visual editor: pick the **Tapo device** and entities auto-fill
+- Lovelace visual editor: pick the **Tapo device** and entities auto-fill; optional **go2rtc** lives under **Advanced**
 - Local Vite demo with mock `hass` (no HA install)
+
+There is **no** card `title` config — the stream area has no title chrome.
 
 ## Lovelace config
 
@@ -26,7 +32,7 @@ After the card resource is loaded, use the dashboard UI:
 
 1. Edit a dashboard → **Add card** → search **Tapo C260 Camera Card**.
 2. Select your **Tapo camera device** (from `tapo_control`) — camera SD/HD, PTZ buttons, angle, calibrate, preset, and privacy fill in automatically.
-3. Optionally set hold interval. Open **Advanced** for go2rtc, or **Entity overrides** only if a mapping needs a tweak.
+3. Optionally set hold interval. Open **Advanced** for optional **go2rtc**, or **Entity overrides** only if a mapping needs a tweak.
 4. Save.
 
 ### YAML
@@ -37,7 +43,7 @@ type: custom:tapo-c260-card
 # device: <tapo_control device id>
 camera: camera.living_room_sd
 camera_hd: camera.living_room_hd
-# Optional go2rtc — see “go2rtc URL expectations” below
+# Optional go2rtc — editor: Advanced → go2rtc stream (optional)
 # go2rtc: living_room
 # go2rtc: ws://192.168.1.10:1984/api/ws?src=living_room
 ptz:
@@ -66,9 +72,11 @@ Playback is **not** a single `.m3u8` stuck on `<video src>` (that fails on Chrom
 
 When both `camera` and `camera_hd` are set, the card **prefers HD** as the primary WebRTC entity and lists HD HTTP candidates before SD. Browsers pick the first *compatible* `<source>`, not “highest quality” by themselves — quality preference comes from our candidate order and primary-entity choice, not from runtime switching. PTZ no longer tears down / swaps streams.
 
+Pinch / pan only crops the received pixels locally. Stream reconnect or player restart resets zoom to 1×.
+
 ### go2rtc URL expectations
 
-The optional `go2rtc` key stays schema-compatible:
+Optional `go2rtc` is configured in the editor under **Advanced**, or as a YAML string:
 
 | Value | Meaning |
 | --- | --- |
@@ -77,7 +85,7 @@ The optional `go2rtc` key stays schema-compatible:
 | `http(s)://host:1984/api/ws?src=name` | Same; converted to `ws(s)` for signaling; HTTP `…/api/stream.mp4` and `…/api/stream.m3u8` are added as `<source>` candidates |
 | Omitted | HA camera entity WebRTC / HLS only |
 
-Ensure go2rtc knows the same stream name you put in `go2rtc` (or in the absolute URL `src=`).
+Device autofill does **not** invent a go2rtc stream name — set it yourself if you use go2rtc. Ensure go2rtc already exposes that `src` name.
 
 ### Optional keys
 
@@ -85,9 +93,10 @@ Ensure go2rtc knows the same stream name you put in `go2rtc` (or in the absolute
 | --- | --- |
 | `device` | `tapo_control` device id — auto-associates entities |
 | `camera_hd` | Preferred HD camera entity (SD/`camera` stays a fallback source; no PTZ switch) |
-| `go2rtc` | Stream name or absolute go2rtc `/api/ws` URL (see above) |
+| `go2rtc` | Stream name or absolute go2rtc `/api/ws` URL (editor: **Advanced**) |
 | `hold_interval_ms` | Hold-to-repeat interval (default `350`) |
 | `privacy` | Privacy switch — disables the pad when `on` |
+| `ptz.calibrate` | Calibrate / home button entity (service call; not the pad center) |
 | `ptz.preset` | Optional preset select entity |
 
 ## Dependencies
@@ -148,6 +157,14 @@ Use this when developing from source or when no HACS release asset exists yet.
 
 Updating later: rebuild, replace `config/www/tapo-c260-card.js`, then hard-refresh the dashboard.
 
+## Releases
+
+GitHub Release (HACS asset `tapo-c260-card.js`) is published **only when** `package.json` `version` changes on `main` versus the previous commit, and tag `vX.Y.Z` does not already exist.
+
+- Docs, UI, and other commits that leave the version unchanged do **not** cut a release
+- There is **no** automatic patch bump
+- To ship: bump `version` in `package.json` (keep the lockfile in sync) → push `main` → Actions builds and attaches `tapo-c260-card.js`
+
 ## Local demo (no Home Assistant)
 
 ```bash
@@ -158,7 +175,8 @@ npm run demo
 Open the URL Vite prints (default [http://127.0.0.1:5173](http://127.0.0.1:5173)).
 
 - Mock `hass` logs `button.press` / privacy toggles in the on-page service log
-- Stream shows the Concept C placeholder until a real go2rtc / camera proxy URL is configured
+- Stream shows a connecting placeholder until a real go2rtc / camera proxy URL is configured
+- Mute / volume chrome and the display-only center graphic match the Lovelace card
 - Use **Toggle privacy** to verify pad lockout
 
 ### Other scripts
@@ -172,7 +190,7 @@ Open the URL Vite prints (default [http://127.0.0.1:5173](http://127.0.0.1:5173)
 
 ## Orientation model
 
-Tapo / `tapo_control` expose **relative** moves, not an absolute pan/tilt sensor. The center graphic **dead-reckons** from commanded nudges (using Movement Angle when available). **Calibrate / home** resets yaw/pitch to `0` and marks orientation known. Treat the readout as approximate until a later ONVIF/`GetStatus` path is proven.
+Tapo / `tapo_control` expose **relative** moves, not an absolute pan/tilt sensor. The center graphic **dead-reckons** from commanded nudges (using Movement Angle when available) and is **display-only**. The optional `ptz.calibrate` entity still runs calibrate / home via `button.press` when configured; it is not wired to a tap on the pad center. Treat the readout as approximate until a later ONVIF/`GetStatus` path is proven.
 
 ## License
 
