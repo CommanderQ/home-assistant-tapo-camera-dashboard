@@ -64,7 +64,7 @@ Keep list items concise. Omit empty categories. Details: [`docs/commit-and-relea
 
 ### Version bump commit + GitHub Release notes
 
-The bump commit body and the GitHub Release notes share this format (version from `package.json`):
+The bump commit’s **full body** is the GitHub Release body (workflow: `git log -1 --format=%b`). Author it in this format (version from `package.json`):
 
 ```markdown
 # Release x.x.x
@@ -84,7 +84,7 @@ The bump commit body and the GitHub Release notes share this format (version fro
 
 - Consolidate **all commits since the previous version** into those categories
 - Include a **PR link per change/PR** when one exists; omit empty categories
-- Workflow uses `scripts/generate-release-notes.mjs` (prefers an authored `# Release` bump body; otherwise consolidates commit sections). Do **not** rely on GitHub `generate_release_notes`
+- Do **not** rely on GitHub `generate_release_notes`; there is no notes-generator script
 
 ## Layout / UX preferences (keep these)
 
@@ -124,7 +124,6 @@ Live press-to-talk (browser mic → C260 speaker) is **researched and deferred**
 | Lovelace editor | `src/editor.ts` |
 | Local mock demo | `demo/` |
 | HACS release workflow | `.github/workflows/release.yml` |
-| Release notes generator | `scripts/generate-release-notes.mjs` |
 | Commit / release conventions | `docs/commit-and-release.md` |
 | Deferred plans | `docs/future/` |
 

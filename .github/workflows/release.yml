@@ -8,14 +8,12 @@ on:
 
 permissions:
   contents: write
-  pull-requests: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -37,12 +35,6 @@ jobs:
             OLD_VERSION=""
           fi
           echo "previous=${OLD_VERSION}" >> "$GITHUB_OUTPUT"
-
-          if [ -n "${OLD_VERSION}" ] && git rev-parse -q --verify "refs/tags/v${OLD_VERSION}" >/dev/null; then
-            echo "previous_tag=v${OLD_VERSION}" >> "$GITHUB_OUTPUT"
-          else
-            echo "previous_tag=" >> "$GITHUB_OUTPUT"
-          fi
 
           if git rev-parse -q --verify "refs/tags/v${NEW_VERSION}" >/dev/null; then
             TAG_EXISTS=true
@@ -74,16 +66,16 @@ jobs:
       - run: npm run build
         if: steps.version.outputs.changed == 'true'
 
-      - name: Generate release notes
+      - name: Write release body from bump commit
         if: steps.version.outputs.changed == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          node scripts/generate-release-notes.mjs \
-            "${{ steps.version.outputs.version }}" \
-            "${{ steps.version.outputs.previous_tag }}" \
-            release-notes.md
+          # GitHub Release body = full body of the version-bump commit (HEAD).
+          git log -1 --format=%b > release-notes.md
+          if [ ! -s release-notes.md ] || ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "Version-bump commit has an empty body; expected authored # Release notes" >&2
+            exit 1
+          fi
           echo "----- release-notes.md -----"
           cat release-notes.md
 

@@ -29,7 +29,7 @@ Rules:
 
 ## Version bump commit + GitHub Release
 
-When shipping, bump `package.json` (and lockfile) in a dedicated commit. That commit body **and** the GitHub Release notes use the same shape:
+When shipping, bump `package.json` (and lockfile) in a dedicated commit. That commit’s **full body** becomes the GitHub Release body as-is (workflow reads `git log -1 --format=%b` on the bump commit). Author it in this shape:
 
 ```markdown
 # Release x.x.x
@@ -51,14 +51,10 @@ When shipping, bump `package.json` (and lockfile) in a dedicated commit. That co
 - Categories **consolidate** all commits since the previous version tag
 - Include a **PR link per change/PR** when a PR exists
 - Omit empty categories
+- An empty bump-commit body fails the release job
 
 ## Workflow behavior
 
-`.github/workflows/release.yml` still publishes **only** when `package.json` version changes on `main` and tag `vX.Y.Z` does not exist.
+`.github/workflows/release.yml` publishes **only** when `package.json` version changes on `main` and tag `vX.Y.Z` does not exist.
 
-Release notes generation (`scripts/generate-release-notes.mjs`):
-
-1. If the bump commit body already starts with `# Release …`, use that body as-is
-2. Otherwise consolidate `## Features` / `## Fixes` / `## Changes` / `## Other` items from commits since the previous version tag, attach PR links when discoverable, and fall back to conventional-commit subject heuristics for older commits
-
-`generate_release_notes: true` (GitHub auto notes) is **not** used.
+Release notes: the version-bump commit message body is used verbatim (`body_path` from that body). `generate_release_notes: true` (GitHub auto notes) is **not** used. There is no notes-generator script.
