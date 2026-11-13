@@ -19,6 +19,7 @@ import {
   isPrivacyOn,
   nudgeDirection,
   readMovementAngle,
+  togglePrivacy,
 } from "./ptz";
 import { cardStyles } from "./styles";
 import {
@@ -68,6 +69,25 @@ const muteIconMuted = html`
     <path
       fill="currentColor"
       d="M4 9v6h3.2L12 19.5V4.5L7.2 9H4zm12.7-1.3-1.4 1.4 2.1 2.1-2.1 2.1 1.4 1.4 2.1-2.1 2.1 2.1 1.4-1.4-2.1-2.1 2.1-2.1-1.4-1.4-2.1 2.1-2.1-2.1z"
+    />
+  </svg>
+`;
+
+/** Matches tapo_control Privacy switch icons: eye / eye-off. */
+const privacyIconOpen = html`
+  <svg class="audio-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      fill="currentColor"
+      d="M12 5c-5 0-9.3 3.1-11 7.5C2.7 16.9 7 20 12 20s9.3-3.1 11-7.5C21.3 8.1 17 5 12 5zm0 12.5c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"
+    />
+  </svg>
+`;
+
+const privacyIconClosed = html`
+  <svg class="audio-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      fill="currentColor"
+      d="M2.1 3.5 1 4.6l3.1 3.1C2.5 9.2 1.3 10.7.5 12.5 2.2 16.9 6.5 20 11.5 20c1.8 0 3.5-.4 5-1.1l3.9 3.9 1.1-1.1L2.1 3.5zM12 7.5c.5 0 1 .1 1.4.3l-1.6 1.6A3 3 0 0 0 9 12c0 .2 0 .3.1.5L7.5 14A5 5 0 0 1 12 7.5zm0 12.5c-3.7 0-6.9-2-8.6-5 1-1.8 2.5-3.2 4.3-4.1l1.7 1.7c-.2.4-.4.9-.4 1.4 0 2.2 1.8 4 4 4 .5 0 1-.1 1.4-.4l1.6 1.6c-.9.5-1.9.8-3 .8zm9.5-7.5c-.5 1.1-1.2 2.1-2.1 2.9l-1.5-1.5c.5-.7.8-1.5.8-2.4a5 5 0 0 0-5-5c-.9 0-1.7.3-2.4.8L9.8 6.3C10.5 6.1 11.2 6 12 6c5 0 9.3 3.1 11 7.5-.4.9-.9 1.7-1.5 2.5z"
     />
   </svg>
 `;
@@ -583,6 +603,13 @@ export class TapoC260Card extends LitElement {
     this._applyAudioToVideo();
   }
 
+  private _onPrivacyClick(event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const entity = this._resolvedConfig?.privacy;
+    void togglePrivacy(this.hass, entity);
+  }
+
   private _onVolumeInput(event: Event): void {
     event.stopPropagation();
     const input = event.target as HTMLInputElement;
@@ -715,29 +742,49 @@ export class TapoC260Card extends LitElement {
                 </p>
               </div>
 
-              <div class="pad-audio" aria-label="Stream audio">
-                <button
-                  class=${classMap({
-                    "audio-mute": true,
-                    muted: this._muted,
-                  })}
-                  type="button"
-                  aria-label=${this._muted ? "Unmute stream" : "Mute stream"}
-                  aria-pressed=${this._muted ? "true" : "false"}
-                  @click=${this._toggleMute}
-                >
-                  ${this._muted ? muteIconMuted : muteIconOn}
-                </button>
-                <input
-                  class="audio-volume"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  .value=${String(this._volume)}
-                  aria-label="Stream volume"
-                  @input=${this._onVolumeInput}
-                />
+              <div class="pad-media" aria-label="Privacy and stream audio">
+                ${config.privacy
+                  ? html`
+                      <button
+                        class=${classMap({
+                          "privacy-toggle": true,
+                          on: locked,
+                        })}
+                        type="button"
+                        aria-label=${locked
+                          ? "Disable privacy mode"
+                          : "Enable privacy mode"}
+                        aria-pressed=${locked ? "true" : "false"}
+                        @click=${this._onPrivacyClick}
+                      >
+                        ${locked ? privacyIconClosed : privacyIconOpen}
+                      </button>
+                    `
+                  : nothing}
+                <div class="pad-audio" aria-label="Stream audio">
+                  <button
+                    class=${classMap({
+                      "audio-mute": true,
+                      muted: this._muted,
+                    })}
+                    type="button"
+                    aria-label=${this._muted ? "Unmute stream" : "Mute stream"}
+                    aria-pressed=${this._muted ? "true" : "false"}
+                    @click=${this._toggleMute}
+                  >
+                    ${this._muted ? muteIconMuted : muteIconOn}
+                  </button>
+                  <input
+                    class="audio-volume"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    .value=${String(this._volume)}
+                    aria-label="Stream volume"
+                    @input=${this._onVolumeInput}
+                  />
+                </div>
               </div>
             </div>
           </div>

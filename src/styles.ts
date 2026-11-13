@@ -143,10 +143,10 @@ export const cardStyles = css`
     opacity: 1;
   }
 
-  /* Lower control row: PTZ block (ring + hint) | audio; audio matches ring only. */
+  /* Lower control row: PTZ block (ring + hint) | privacy + audio; side matches ring. */
   .pad-controls {
-    /* Shared so audio block-size tracks the ring, not ring+hint. */
-    --ring-size: min(220px, 64vw, calc(100vw - 96px));
+    /* Shared so side chrome block-size tracks the ring, not ring+hint. */
+    --ring-size: min(220px, 64vw, calc(100vw - 140px));
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -167,7 +167,7 @@ export const cardStyles = css`
   }
 
   .ring-wrap {
-    /* Leave room for the vertical audio stack on phones. */
+    /* Leave room for privacy + vertical audio stack on phones. */
     inline-size: var(--ring-size);
     aspect-ratio: 1;
     flex: 0 0 auto;
@@ -624,7 +624,17 @@ export const cardStyles = css`
     letter-spacing: 0.03em;
   }
 
-  /* Compact custom audio — height matches PTZ ring, not ring+hint. */
+  /* Privacy (left) + mute/volume column — height matches PTZ ring. */
+  .pad-media {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    gap: var(--ha-space-2, 8px);
+    block-size: var(--ring-size);
+    flex: 0 0 auto;
+    touch-action: manipulation;
+  }
+
   .pad-audio {
     display: flex;
     flex-direction: column;
@@ -632,11 +642,12 @@ export const cardStyles = css`
     justify-content: flex-start;
     gap: var(--ha-space-2, 8px);
     inline-size: 44px;
-    block-size: var(--ring-size);
+    block-size: 100%;
     flex: 0 0 auto;
     touch-action: manipulation;
   }
 
+  .privacy-toggle,
   .audio-mute {
     inline-size: 44px;
     block-size: 44px;
@@ -656,11 +667,18 @@ export const cardStyles = css`
     touch-action: manipulation;
   }
 
+  .privacy-toggle:hover,
+  .privacy-toggle:focus-visible,
   .audio-mute:hover,
   .audio-mute:focus-visible {
     border-color: var(--tapo-amber);
     color: var(--tapo-amber);
     outline: none;
+  }
+
+  .privacy-toggle.on {
+    color: var(--tapo-amber);
+    border-color: var(--tapo-amber);
   }
 
   .audio-mute.muted {

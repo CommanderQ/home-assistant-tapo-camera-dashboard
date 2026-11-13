@@ -77,11 +77,17 @@ export function createMockHass(options: MockHassOptions = {}): HomeAssistant {
     async callService(domain, service, data) {
       options.onService?.(domain, service, data);
 
-      if (domain === "switch" && service === "toggle" && data?.entity_id) {
+      if (domain === "switch" && data?.entity_id) {
         const id = String(data.entity_id);
         const ent = states[id];
         if (ent) {
-          ent.state = ent.state === "on" ? "off" : "on";
+          if (service === "toggle") {
+            ent.state = ent.state === "on" ? "off" : "on";
+          } else if (service === "turn_on") {
+            ent.state = "on";
+          } else if (service === "turn_off") {
+            ent.state = "off";
+          }
         }
       }
 

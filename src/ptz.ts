@@ -28,6 +28,15 @@ export async function pressButton(
   await hass.callService("button", "press", { entity_id: entityId });
 }
 
+/** Toggle tapo_control Privacy switch (`switch.*_privacy` → setPrivacyMode). */
+export async function togglePrivacy(
+  hass: HomeAssistant | undefined,
+  privacyEntity?: string,
+): Promise<void> {
+  if (!hass || !privacyEntity) return;
+  await hass.callService("switch", "toggle", { entity_id: privacyEntity });
+}
+
 export async function nudgeDirection(
   hass: HomeAssistant | undefined,
   config: TapoC260CardConfig,

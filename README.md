@@ -95,7 +95,7 @@ Device autofill does **not** invent a go2rtc stream name — set it yourself if 
 | `camera_hd` | Preferred HD camera entity (SD/`camera` stays a fallback source; no PTZ switch) |
 | `go2rtc` | Stream name or absolute go2rtc `/api/ws` URL (editor: **Advanced**) |
 | `hold_interval_ms` | Hold-to-repeat interval (default `350`) |
-| `privacy` | Privacy switch — disables the pad when `on` |
+| `privacy` | Privacy switch — pad lock + banner when `on`; toggle left of volume |
 | `ptz.calibrate` | Calibrate / home button entity (service call; not the pad center) |
 | `ptz.preset` | Optional preset select entity |
 
