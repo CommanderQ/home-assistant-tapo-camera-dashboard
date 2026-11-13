@@ -3,14 +3,23 @@ import { css } from "lit";
 /** Concept C — industrial metal / amber accents, portrait stream-over-pad. */
 export const cardStyles = css`
   :host {
+    /* Concept C metal aliases stay local; ink/muted/amber theme via HA tokens. */
     --tapo-bg: #1a1c1e;
     --tapo-card: #2a2e32;
     --tapo-metal: #3a4046;
     --tapo-metal-hi: #5a636c;
-    --tapo-ink: #e6e8ea;
-    --tapo-muted: #9aa3ab;
-    --tapo-amber: #d4a017;
-    --tapo-amber-dim: #8a6a12;
+    --tapo-ink: var(--primary-text-color, #e6e8ea);
+    --tapo-muted: var(--secondary-text-color, #9aa3ab);
+    --tapo-amber: var(--accent-color, #d4a017);
+    --tapo-amber-dim: var(--primary-color, #8a6a12);
+    --tapo-amber-rgb: var(--rgb-accent-color, 212, 160, 23);
+    --tapo-muted-rgb: var(--rgb-secondary-text-color, 154, 163, 171);
+    /* Comma-safe Concept C chrome fallbacks for var(--ha-card-*, …). */
+    --tapo-card-gradient: linear-gradient(160deg, #32383e, #23272b 60%, #1e2226);
+    --tapo-card-shadow:
+      0 0 0 1px #15181b,
+      0 12px 28px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
     display: block;
     inline-size: 100%;
     block-size: auto;
@@ -20,16 +29,24 @@ export const cardStyles = css`
   .card {
     inline-size: 100%;
     block-size: auto;
-    background: linear-gradient(160deg, #32383e, #23272b 60%, #1e2226);
-    border: 1px solid #4a525a;
-    border-radius: 10px;
-    box-shadow:
-      0 0 0 1px #15181b,
-      0 12px 28px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    background: var(
+      --ha-card-background,
+      var(--card-background-color, var(--tapo-card-gradient))
+    );
+    border-width: var(--ha-card-border-width, 1px);
+    border-style: solid;
+    border-color: var(--ha-card-border-color, var(--divider-color, #4a525a));
+    border-radius: var(--ha-card-border-radius, 10px);
+    box-shadow: var(--ha-card-box-shadow, var(--tapo-card-shadow));
     overflow: hidden;
-    color: var(--tapo-ink);
-    font-family: "DIN Alternate", "Helvetica Neue", "Arial Narrow", sans-serif;
+    color: var(--primary-text-color, var(--tapo-ink));
+    font-family: var(
+      --ha-font-family-body,
+      "DIN Alternate",
+      "Helvetica Neue",
+      "Arial Narrow",
+      sans-serif
+    );
   }
 
   .layout {
@@ -44,7 +61,7 @@ export const cardStyles = css`
     min-block-size: 180px;
     background:
       linear-gradient(180deg, #3d4a52 0%, #2a3338 50%, #1f2629 100%);
-    border-block-end: 1px solid #15181b;
+    border-block-end: 1px solid var(--divider-color, #15181b);
     display: grid;
     grid-template: 1fr / 1fr;
     overflow: hidden;
@@ -80,13 +97,13 @@ export const cardStyles = css`
     text-align: center;
     color: var(--tapo-muted);
     z-index: 1;
-    padding: 24px;
+    padding: var(--ha-space-6, 24px);
   }
 
   .stream-placeholder strong {
     display: block;
     color: var(--tapo-ink);
-    margin-block-end: 4px;
+    margin-block-end: var(--ha-space-1, 4px);
     letter-spacing: 0.06em;
   }
 
@@ -95,12 +112,12 @@ export const cardStyles = css`
   }
 
   .pad {
-    padding: 18px 16px 20px;
+    padding: var(--ha-space-5, 18px) var(--ha-space-4, 16px) var(--ha-space-5, 20px);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: var(--ha-space-3, 12px);
     background:
       repeating-linear-gradient(
         90deg,
@@ -113,7 +130,7 @@ export const cardStyles = css`
 
   .angles {
     min-block-size: 1.2em;
-    font-size: 11px;
+    font-size: var(--ha-font-size-xs, 11px);
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--tapo-amber);
@@ -134,7 +151,7 @@ export const cardStyles = css`
     flex-direction: row;
     justify-content: space-between;
     align-items: start;
-    gap: 10px;
+    gap: var(--ha-space-2, 10px);
     inline-size: 100%;
     max-inline-size: 100%;
   }
@@ -144,7 +161,7 @@ export const cardStyles = css`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: var(--ha-space-3, 12px);
     flex: 0 1 auto;
     min-inline-size: 0;
   }
@@ -179,21 +196,21 @@ export const cardStyles = css`
     background: conic-gradient(
       from 0deg,
       transparent 0deg 8deg,
-      rgba(212, 160, 23, 0.35) 8deg 9deg,
+      rgba(var(--tapo-amber-rgb), 0.35) 8deg 9deg,
       transparent 9deg 44deg,
-      rgba(154, 163, 171, 0.25) 44deg 45deg,
+      rgba(var(--tapo-muted-rgb), 0.25) 44deg 45deg,
       transparent 45deg 89deg,
-      rgba(212, 160, 23, 0.5) 89deg 91deg,
+      rgba(var(--tapo-amber-rgb), 0.5) 89deg 91deg,
       transparent 91deg 134deg,
-      rgba(154, 163, 171, 0.25) 134deg 135deg,
+      rgba(var(--tapo-muted-rgb), 0.25) 134deg 135deg,
       transparent 135deg 179deg,
-      rgba(212, 160, 23, 0.5) 179deg 181deg,
+      rgba(var(--tapo-amber-rgb), 0.5) 179deg 181deg,
       transparent 181deg 224deg,
-      rgba(154, 163, 171, 0.25) 224deg 225deg,
+      rgba(var(--tapo-muted-rgb), 0.25) 224deg 225deg,
       transparent 225deg 269deg,
-      rgba(212, 160, 23, 0.5) 269deg 271deg,
+      rgba(var(--tapo-amber-rgb), 0.5) 269deg 271deg,
       transparent 271deg 314deg,
-      rgba(154, 163, 171, 0.25) 314deg 315deg,
+      rgba(var(--tapo-muted-rgb), 0.25) 314deg 315deg,
       transparent 315deg 360deg
     );
     mask: radial-gradient(circle, transparent 72%, #000 73% 92%, transparent 93%);
@@ -212,12 +229,12 @@ export const cardStyles = css`
     block-size: 48px;
     min-inline-size: 48px;
     min-block-size: 48px;
-    border-radius: 6px;
-    border: 1px solid var(--tapo-metal-hi);
+    border-radius: var(--ha-border-radius-md, 6px);
+    border: 1px solid var(--outline-color, var(--divider-color, var(--tapo-metal-hi)));
     background: linear-gradient(180deg, #4a525a, #2e343a);
     color: var(--tapo-ink);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--ha-font-size-m, 14px);
     z-index: 3;
     box-shadow:
       0 2px 4px rgba(0, 0, 0, 0.4),
@@ -247,6 +264,7 @@ export const cardStyles = css`
   }
 
   .btn:disabled {
+    color: var(--disabled-text-color, var(--tapo-ink));
     opacity: 0.35;
     cursor: not-allowed;
   }
@@ -254,22 +272,22 @@ export const cardStyles = css`
   .btn.up {
     justify-self: center;
     align-self: start;
-    margin-block-start: 12px;
+    margin-block-start: var(--ha-space-3, 12px);
   }
   .btn.down {
     justify-self: center;
     align-self: end;
-    margin-block-end: 12px;
+    margin-block-end: var(--ha-space-3, 12px);
   }
   .btn.left {
     justify-self: start;
     align-self: center;
-    margin-inline-start: 12px;
+    margin-inline-start: var(--ha-space-3, 12px);
   }
   .btn.right {
     justify-self: end;
     align-self: center;
-    margin-inline-end: 12px;
+    margin-inline-end: var(--ha-space-3, 12px);
   }
 
   .stage {
@@ -394,7 +412,7 @@ export const cardStyles = css`
     background:
       linear-gradient(
         90deg,
-        rgba(212, 160, 23, 0.22) 0 2px,
+        rgba(var(--tapo-amber-rgb), 0.22) 0 2px,
         transparent 2px
       ),
       linear-gradient(180deg, #5a636c, #2e343a 60%, #1e2226);
@@ -543,7 +561,7 @@ export const cardStyles = css`
     height: 5px;
     border-radius: 1px;
     background: var(--tapo-amber);
-    box-shadow: 0 0 4px rgba(212, 160, 23, 0.55);
+    box-shadow: 0 0 4px rgba(var(--tapo-amber-rgb), 0.55);
   }
 
   .lens-bezel {
@@ -597,7 +615,7 @@ export const cardStyles = css`
 
   .hint {
     margin: 0;
-    font-size: 11px;
+    font-size: var(--ha-font-size-xs, 11px);
     color: var(--tapo-muted);
     text-align: center;
     inline-size: 100%;
@@ -612,7 +630,7 @@ export const cardStyles = css`
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 8px;
+    gap: var(--ha-space-2, 8px);
     inline-size: 44px;
     block-size: var(--ring-size);
     flex: 0 0 auto;
@@ -625,8 +643,8 @@ export const cardStyles = css`
     min-inline-size: 44px;
     min-block-size: 44px;
     padding: 0;
-    border-radius: 6px;
-    border: 1px solid var(--tapo-metal-hi);
+    border-radius: var(--ha-border-radius-md, 6px);
+    border: 1px solid var(--outline-color, var(--divider-color, var(--tapo-metal-hi)));
     background: linear-gradient(180deg, #4a525a, #2e343a);
     color: var(--tapo-ink);
     cursor: pointer;
@@ -668,7 +686,7 @@ export const cardStyles = css`
     height: 100%;
     margin: 0;
     padding: 0;
-    accent-color: var(--tapo-amber);
+    accent-color: var(--primary-color, var(--tapo-amber));
     cursor: pointer;
     touch-action: none;
   }
@@ -678,16 +696,17 @@ export const cardStyles = css`
     z-index: 4;
     display: grid;
     place-items: center;
+    /* Intentional video overlay black — not theme chrome. */
     background: rgba(10, 12, 14, 0.72);
     color: var(--tapo-amber);
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    font-size: 12px;
+    font-size: var(--ha-font-size-s, 12px);
   }
 
   .error {
-    padding: 16px;
-    color: #f0a0a0;
+    padding: var(--ha-space-4, 16px);
+    color: var(--error-color, #f0a0a0);
     font-size: 0.9rem;
   }
 `;
