@@ -617,11 +617,6 @@ export class TapoC260Card extends LitElement {
                   <div class="stream-placeholder">
                     <div>
                       <strong>Connecting stream…</strong>
-                      <span
-                        >WebRTC first, then multi-source MP4 / hls.js.
-                        <code>camera_hd</code> is preferred when set; SD is a
-                        fallback source only (no PTZ quality switch).</span
-                      >
                     </div>
                   </div>
                 `
