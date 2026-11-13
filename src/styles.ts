@@ -125,10 +125,23 @@ export const cardStyles = css`
     opacity: 1;
   }
 
+  .pad-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+  }
+
   .ring-wrap {
-    width: min(220px, 72vw);
-    height: min(220px, 72vw);
+    /* Leave room for the vertical audio stack on phones. */
+    --ring-size: min(220px, 64vw, calc(100vw - 96px));
+    width: var(--ring-size);
+    height: var(--ring-size);
     position: relative;
+    flex: 0 1 auto;
   }
 
   .ring {
@@ -572,24 +585,16 @@ export const cardStyles = css`
     letter-spacing: 0.03em;
   }
 
-  /* Compact custom audio chrome — not native video controls; above media, below privacy. */
-  .stream-audio {
-    position: absolute;
-    left: 8px;
-    bottom: 8px;
-    z-index: 3;
+  /* Compact custom audio — vertical stack on the right of the PTZ pad. */
+  .pad-audio {
     display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    padding: 4px 10px 4px 4px;
-    border-radius: 8px;
-    background: rgba(14, 16, 18, 0.72);
-    border: 1px solid rgba(90, 99, 108, 0.55);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    /* Own touch surface — pinch/pan stay on the stream behind. */
+    flex: 0 0 auto;
+    width: 44px;
     touch-action: manipulation;
-    pointer-events: auto;
   }
 
   .audio-mute {
@@ -605,7 +610,9 @@ export const cardStyles = css`
     cursor: pointer;
     display: grid;
     place-items: center;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
     touch-action: manipulation;
   }
 
@@ -627,8 +634,13 @@ export const cardStyles = css`
   }
 
   .audio-volume {
-    width: min(36vw, 120px);
-    height: 28px;
+    /* Vertical range: low at bottom, high at top. */
+    writing-mode: vertical-lr;
+    direction: rtl;
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    width: 28px;
+    height: min(132px, 38vw);
     margin: 0;
     padding: 0;
     accent-color: var(--tapo-amber);

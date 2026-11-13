@@ -573,11 +573,6 @@ export class TapoC260Card extends LitElement {
     this._gesture = null;
   }
 
-  /** Keep mute/volume chrome from starting stream pinch/pan gestures. */
-  private _stopStreamGesture(event: Event): void {
-    event.stopPropagation();
-  }
-
   private _toggleMute(event: Event): void {
     event.stopPropagation();
     event.preventDefault();
@@ -680,37 +675,6 @@ export class TapoC260Card extends LitElement {
                   </div>
                 `
               : nothing}
-            <div
-              class="stream-audio"
-              @touchstart=${this._stopStreamGesture}
-              @touchmove=${this._stopStreamGesture}
-              @touchend=${this._stopStreamGesture}
-              @touchcancel=${this._stopStreamGesture}
-              @pointerdown=${this._stopStreamGesture}
-            >
-              <button
-                class=${classMap({
-                  "audio-mute": true,
-                  muted: this._muted,
-                })}
-                type="button"
-                aria-label=${this._muted ? "Unmute stream" : "Mute stream"}
-                aria-pressed=${this._muted ? "true" : "false"}
-                @click=${this._toggleMute}
-              >
-                ${this._muted ? muteIconMuted : muteIconOn}
-              </button>
-              <input
-                class="audio-volume"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                .value=${String(this._volume)}
-                aria-label="Stream volume"
-                @input=${this._onVolumeInput}
-              />
-            </div>
             ${locked
               ? html`<div class="privacy-banner">Privacy on</div>`
               : nothing}
@@ -724,24 +688,51 @@ export class TapoC260Card extends LitElement {
               ${this._showAngles ? formatAngles(this._orientation) : "\u00a0"}
             </div>
 
-            <div class="ring-wrap">
-              <div class="ring">
-                <div class="ticks" aria-hidden="true"></div>
-                ${this._dirButton("up", "▲", "Tilt up")}
-                ${this._dirButton("down", "▼", "Tilt down")}
-                ${this._dirButton("left", "◀", "Pan left")}
-                ${this._dirButton("right", "▶", "Pan right")}
-                <div class="stage">
-                  <div
-                    class="orientation-view"
-                    aria-hidden="true"
-                    title="Camera orientation"
-                  >
-                    <div class="cam3d">
-                      ${camera3d(cameraTransform(this._orientation))}
+            <div class="pad-controls">
+              <div class="ring-wrap">
+                <div class="ring">
+                  <div class="ticks" aria-hidden="true"></div>
+                  ${this._dirButton("up", "▲", "Tilt up")}
+                  ${this._dirButton("down", "▼", "Tilt down")}
+                  ${this._dirButton("left", "◀", "Pan left")}
+                  ${this._dirButton("right", "▶", "Pan right")}
+                  <div class="stage">
+                    <div
+                      class="orientation-view"
+                      aria-hidden="true"
+                      title="Camera orientation"
+                    >
+                      <div class="cam3d">
+                        ${camera3d(cameraTransform(this._orientation))}
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div class="pad-audio" aria-label="Stream audio">
+                <button
+                  class=${classMap({
+                    "audio-mute": true,
+                    muted: this._muted,
+                  })}
+                  type="button"
+                  aria-label=${this._muted ? "Unmute stream" : "Mute stream"}
+                  aria-pressed=${this._muted ? "true" : "false"}
+                  @click=${this._toggleMute}
+                >
+                  ${this._muted ? muteIconMuted : muteIconOn}
+                </button>
+                <input
+                  class="audio-volume"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  .value=${String(this._volume)}
+                  aria-label="Stream volume"
+                  @input=${this._onVolumeInput}
+                />
               </div>
             </div>
 
