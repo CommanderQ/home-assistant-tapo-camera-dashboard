@@ -860,15 +860,16 @@ if (!customElements.get("ha-icon-button")) {
         <style>
           :host {
             display: inline-flex;
+            box-sizing: border-box;
             color: inherit;
-            --ha-icon-button-size: 48px;
-            --mdc-icon-button-size: var(--ha-icon-button-size, 48px);
-            --mdc-icon-size: 24px;
+            /* Consume --tapo-* / theme; never assign --ha-icon-button-size / --mdc-*. */
+            width: var(--tapo-icon-button-size, var(--ha-icon-button-size, 48px));
+            height: var(--tapo-icon-button-size, var(--ha-icon-button-size, 48px));
           }
           button {
             box-sizing: border-box;
-            width: var(--mdc-icon-button-size, var(--ha-icon-button-size, 48px));
-            height: var(--mdc-icon-button-size, var(--ha-icon-button-size, 48px));
+            width: 100%;
+            height: 100%;
             margin: 0;
             padding: 0;
             border: none;
@@ -889,8 +890,8 @@ if (!customElements.get("ha-icon-button")) {
             background: rgba(var(--rgb-primary-text-color, 230, 232, 234), 0.1);
           }
           svg {
-            width: var(--mdc-icon-size, 24px);
-            height: var(--mdc-icon-size, 24px);
+            width: var(--tapo-icon-size, 24px);
+            height: var(--tapo-icon-size, 24px);
             fill: currentColor;
           }
         </style>

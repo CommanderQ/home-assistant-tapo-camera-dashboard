@@ -1,7 +1,8 @@
 import { css } from "lit";
 
 /**
- * Card chrome uses HA / MDC theme tokens.
+ * Card chrome consumes HA theme tokens; custom sizes live in --tapo-*.
+ * Do not assign --ha-icon-button-size / --mdc-* (that overrides theme).
  * Concept C industrial look is reserved for the CSS 3D camera graphic.
  */
 export const cardStyles = css`
@@ -18,16 +19,11 @@ export const cardStyles = css`
     --tapo-amber-rgb: var(--rgb-accent-color, 212, 160, 23);
     --tapo-muted-rgb: var(--rgb-secondary-text-color, 154, 163, 171);
     --tapo-ink-rgb: var(--rgb-primary-text-color, 230, 232, 234);
-    /* MDC control tokens (ha-icon-button / range accent). */
-    --mdc-theme-primary: var(--primary-color, var(--tapo-amber-dim));
-    --mdc-theme-secondary: var(--accent-color, var(--tapo-amber));
-    --mdc-theme-on-primary: var(--text-primary-color, var(--tapo-ink));
-    --mdc-theme-text-primary-on-background: var(--primary-text-color, var(--tapo-ink));
-    --mdc-theme-text-secondary-on-background: var(
-      --secondary-text-color,
-      var(--tapo-muted)
-    );
-    --mdc-icon-size: 24px;
+    /* Custom control sizes as --tapo-* (or use width/height); never assign --ha-*/--mdc-*. */
+    --tapo-icon-button-size: 48px;
+    --tapo-icon-size: 24px;
+    --tapo-media-btn-size: 44px;
+    --tapo-media-icon-size: 22px;
     display: block;
     inline-size: 100%;
     block-size: auto;
@@ -135,7 +131,7 @@ export const cardStyles = css`
     font-size: var(--ha-font-size-xs, 11px);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--accent-color, var(--mdc-theme-secondary, var(--tapo-amber)));
+    color: var(--accent-color, var(--tapo-amber));
     font-variant-numeric: tabular-nums;
     opacity: 0;
     transition: opacity 0.15s ease;
@@ -230,13 +226,12 @@ export const cardStyles = css`
     pointer-events: none;
   }
 
-  /* PTZ ha-icon-button — MDC / HA icon-button sizing; no custom metal chrome. */
+  /* PTZ ha-icon-button — size via --tapo-*; do not assign --ha-icon-button-size / --mdc-*. */
   ha-icon-button.btn {
     grid-area: 1 / 1;
-    --ha-icon-button-size: 48px;
-    --mdc-icon-button-size: 48px;
-    --mdc-icon-size: 24px;
-    color: var(--mdc-theme-text-primary-on-background, var(--tapo-ink));
+    width: var(--tapo-icon-button-size);
+    height: var(--tapo-icon-button-size);
+    color: var(--primary-text-color, var(--tapo-ink));
     z-index: 3;
     touch-action: none;
     user-select: none;
@@ -245,12 +240,12 @@ export const cardStyles = css`
 
   ha-icon-button.btn:hover:not([disabled]),
   ha-icon-button.btn:focus-visible:not([disabled]) {
-    color: var(--primary-color, var(--mdc-theme-primary, var(--tapo-amber)));
+    color: var(--primary-color, var(--tapo-amber));
   }
 
   ha-icon-button.btn.active:not([disabled]),
   ha-icon-button.btn[selected]:not([disabled]) {
-    color: var(--accent-color, var(--mdc-theme-secondary, var(--tapo-amber)));
+    color: var(--accent-color, var(--tapo-amber));
   }
 
   ha-icon-button.btn[disabled] {
@@ -605,8 +600,8 @@ export const cardStyles = css`
 
   .hint {
     margin: 0;
-    font-size: var(--ha-font-size-xs, var(--mdc-typography-caption-font-size, 11px));
-    color: var(--secondary-text-color, var(--mdc-theme-text-secondary-on-background, var(--tapo-muted)));
+    font-size: var(--ha-font-size-xs, 11px);
+    color: var(--secondary-text-color, var(--tapo-muted));
     text-align: center;
     inline-size: 100%;
     max-inline-size: var(--ring-size);
@@ -631,7 +626,7 @@ export const cardStyles = css`
     align-items: center;
     justify-content: flex-start;
     gap: var(--ha-space-2, 8px);
-    inline-size: 44px;
+    inline-size: var(--tapo-media-btn-size);
     block-size: 100%;
     flex: 0 0 auto;
     touch-action: manipulation;
@@ -639,10 +634,12 @@ export const cardStyles = css`
 
   ha-icon-button.privacy-toggle,
   ha-icon-button.audio-mute {
-    --ha-icon-button-size: 44px;
-    --mdc-icon-button-size: 44px;
-    --mdc-icon-size: 22px;
-    color: var(--mdc-theme-text-primary-on-background, var(--tapo-ink));
+    /* Custom denser hit target via --tapo-*; stub reads these for icon glyph size. */
+    --tapo-icon-button-size: var(--tapo-media-btn-size);
+    --tapo-icon-size: var(--tapo-media-icon-size);
+    width: var(--tapo-media-btn-size);
+    height: var(--tapo-media-btn-size);
+    color: var(--primary-text-color, var(--tapo-ink));
     touch-action: manipulation;
   }
 
@@ -650,12 +647,12 @@ export const cardStyles = css`
   ha-icon-button.privacy-toggle:focus-visible,
   ha-icon-button.audio-mute:hover,
   ha-icon-button.audio-mute:focus-visible {
-    color: var(--primary-color, var(--mdc-theme-primary, var(--tapo-amber)));
+    color: var(--primary-color, var(--tapo-amber));
   }
 
   ha-icon-button.privacy-toggle.on,
   ha-icon-button.privacy-toggle[selected] {
-    color: var(--accent-color, var(--mdc-theme-secondary, var(--tapo-amber)));
+    color: var(--accent-color, var(--tapo-amber));
   }
 
   ha-icon-button.audio-mute.muted,
@@ -676,11 +673,8 @@ export const cardStyles = css`
     height: 100%;
     margin: 0;
     padding: 0;
-    accent-color: var(
-      --mdc-theme-primary,
-      var(--primary-color, var(--tapo-amber))
-    );
-    color: var(--mdc-theme-primary, var(--primary-color, var(--tapo-amber)));
+    accent-color: var(--primary-color, var(--tapo-amber));
+    color: var(--primary-color, var(--tapo-amber));
     cursor: pointer;
     touch-action: none;
   }
@@ -692,7 +686,7 @@ export const cardStyles = css`
     place-items: center;
     /* Intentional video overlay black — not theme chrome. */
     background: rgba(10, 12, 14, 0.72);
-    color: var(--accent-color, var(--mdc-theme-secondary, var(--tapo-amber)));
+    color: var(--accent-color, var(--tapo-amber));
     letter-spacing: 0.16em;
     text-transform: uppercase;
     font-size: var(--ha-font-size-s, 12px);
