@@ -128,7 +128,7 @@ Reference pattern (AlexxIT `VideoRTC.createOffer`): if `media` includes `microph
 | --- | --- | --- | --- |
 | **A. Extend card go2rtc WebRTC (preferred)** | Fits existing stream path; same UX surface as mute/volume; proven by AlexxIT / Frigate | Needs go2rtc + `tapo://`; HTTPS; renegotiation complexity | **Ship this** |
 | B. HA Labs camera two-way | Native frontend someday | Requires `tapo_control` to declare capability; Labs flag; card would still need custom UI | Defer / watch |
-| C. Embed / depend on `custom:webrtc-camera` | Mic already implemented | Breaks Concept C industrial UI; dual cards | Reject |
+| C. Embed / depend on `custom:webrtc-camera` | Mic already implemented | Breaks industrial card UI; dual cards | Reject |
 | D. Separate WebSocket ADPCM (Reolink-style) | Full control | Reinvents Tapo proprietary audio; high risk | Reject |
 | E. TTS / media_player only | Easy for announcements | Not live talkback | Out of scope (optional later) |
 

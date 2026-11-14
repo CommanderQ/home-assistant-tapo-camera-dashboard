@@ -9,7 +9,7 @@ Guidance for AI coding tools working in this repository.
 - **Built artifact (HACS):** `dist/tapo-c260-card.js` — must match `hacs.json` → `filename`
 - **Stack:** TypeScript, Lit, Vite; optional Playwright for source verification
 
-This card is a **phone-first** Lovelace UI for a single Tapo C260: live stream viewport, circular PTZ pad, Concept C industrial 3D orientation graphic, mute/volume chrome.
+This card is a **phone-first** Lovelace UI for a single Tapo C260: live stream viewport, circular PTZ pad, industrial 3D orientation graphic, mute/volume chrome.
 
 ## Required companion: `tapo_control`
 
@@ -86,7 +86,7 @@ The bump commit’s **full body** is the GitHub Release body (workflow: `git log
 
 ## Layout / UX preferences (keep these)
 
-- **Visual concept:** Concept C — industrial metal / 3D perspective PTZ graphic (`src/camera-3d.ts`, pad chrome in `src/styles.ts`)
+- **Visual:** industrial metal / 3D perspective PTZ graphic (`src/camera-3d.ts`, pad chrome in `src/styles.ts`)
 - **Layout:** Stream-dominant, portrait (stream above pad); sections defaults `columns: "full"`, `rows: "auto"`
 - **Stream display:** Native aspect via `object-fit: contain`; still fallback nested in `<video>` (poster + img); MJPEG as separate sibling img
 - **PTZ:** Both click-to-nudge and press-and-hold (`src/ptz.ts` `HoldRepeater`)
@@ -95,7 +95,7 @@ The bump commit’s **full body** is the GitHub Release body (workflow: `git log
 - **Primary surface:** Phone / Companion — touch targets ≥ 44px
 - **Single camera** only for v1 scope
 
-Prefer incremental style/layout fixes over redesign. Do not swap Concept C for a generic Lovelace look.
+Prefer incremental style/layout fixes over redesign. Do not swap the industrial 3D pad for a generic Lovelace look.
 
 ## Talkback / mic → speaker: deferred
 
@@ -141,6 +141,6 @@ npm run verify:sources
 2. Do not bump `package.json` version unless asked to release.
 3. Do not implement items under `docs/future/` unless asked.
 4. Keep `tapo_control` as the entity source of truth; keep go2rtc optional.
-5. Preserve phone-first hit targets and Concept C pad aesthetics.
+5. Preserve phone-first hit targets and industrial pad aesthetics.
 6. After stream/UI changes, prefer `npm run typecheck` / `npm run build` before claiming done.
 7. Write commit bodies with `## Features` / `## Fixes` / `## Changes` / `## Other` list items; on version bumps, use `# Features` / `# Fixes` / `# Changes` / `# Other` consolidated notes with PR links (no `# Release x.x.x` heading).

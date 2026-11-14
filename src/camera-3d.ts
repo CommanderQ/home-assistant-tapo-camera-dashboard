@@ -2,7 +2,7 @@ import { html, TemplateResult } from "lit";
 import { styleMap } from "lit/directives/style-map.js";
 
 /**
- * Extruded CSS-3D C260 graphic for Concept C.
+ * Extruded CSS-3D C260 orientation graphic.
  * Base stays planted; neck+body (`.cam-head`) take yaw/pitch so the
  * silhouette stays readable without spinning the whole stand.
  */

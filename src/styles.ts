@@ -1,13 +1,13 @@
 import { css } from "lit";
 
 /**
- * Card chrome consumes HA theme tokens; Concept C art lives in --tapo-*.
+ * Card chrome consumes HA theme tokens; 3D graphic / pad art lives in --tapo-*.
  * Do not assign --ha-icon-button-size / --mdc-* (that overrides theme).
- * Never use Concept C hex as a fallback on HA tokens — fall back to --tapo-* art instead.
+ * Never use bare art hex as a fallback on HA tokens — fall back to --tapo-* instead.
  */
 export const cardStyles = css`
   :host {
-    /* Primary Concept C art values (3D graphic + chrome fallbacks). */
+    /* Primary art values (3D graphic + chrome fallbacks). */
     --tapo-bg: #1a1c1e;
     --tapo-card: #2a2e32;
     --tapo-metal: #3a4046;
@@ -172,7 +172,7 @@ export const cardStyles = css`
     display: grid;
   }
 
-  /* Pad chrome — HA surface / divider tokens (not Concept C metal paint). */
+  /* Pad chrome — HA surface / divider tokens (not custom metal paint). */
   .ring {
     inline-size: 100%;
     block-size: 100%;
@@ -639,6 +639,10 @@ export const cardStyles = css`
     --tapo-icon-size: var(--tapo-media-icon-size);
     width: var(--tapo-media-btn-size);
     height: var(--tapo-media-btn-size);
+    /* Keep mute at media btn size — volume flex:1 must not crush it vs privacy. */
+    flex: 0 0 auto;
+    min-width: var(--tapo-media-btn-size);
+    min-height: var(--tapo-media-btn-size);
     color: var(--primary-text-color, var(--tapo-ink));
     touch-action: manipulation;
   }
