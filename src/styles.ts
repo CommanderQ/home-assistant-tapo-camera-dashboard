@@ -670,11 +670,13 @@ export const cardStyles = css`
     direction: rtl;
     -webkit-appearance: slider-vertical;
     appearance: slider-vertical;
-    /* Physical width/height: WebKit slider-vertical + writing-mode pairing. */
+    /* Physical width: WebKit slider-vertical + writing-mode pairing. */
     width: 28px;
+    /* Grow into leftover space only — do not height:100% crush mute above. */
     flex: 1 1 auto;
+    align-self: stretch;
     min-height: 64px;
-    height: 100%;
+    height: auto;
     margin: 0;
     padding: 0;
     accent-color: var(--primary-color, var(--tapo-amber));
