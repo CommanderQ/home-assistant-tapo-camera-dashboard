@@ -1,32 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Tapo C260 Card — Local Demo</title>
     <style>
-      :root {
-        color-scheme: dark;
-        /* Approximate HA dark theme tokens so card chrome matches Lovelace. */
-        --primary-text-color: #e6e8ea;
-        --secondary-text-color: #9aa3ab;
-        --disabled-text-color: #6a737c;
-        --primary-color: #03a9f4;
-        --accent-color: #03a9f4;
+      /*
+        Default HA theme tokens from frontend color.globals.ts
+        (colorStyles + darkColorStyles). primary-color ≈ --ha-color-primary-40.
+      */
+      html[data-theme="light"] {
+        color-scheme: light;
+        --primary-text-color: #212121;
+        --secondary-text-color: #727272;
+        --disabled-text-color: #bdbdbd;
+        --primary-color: #009ac7;
+        --accent-color: #ff9800;
         --error-color: #db4437;
-        --divider-color: #3a4046;
-        --outline-color: #5a636c;
-        --primary-background-color: #111317;
-        --secondary-background-color: #2a2e32;
-        --card-background-color: #1c1f22;
+        --divider-color: rgba(0, 0, 0, 0.12);
+        --outline-color: rgba(0, 0, 0, 0.12);
+        --primary-background-color: #fafafa;
+        --secondary-background-color: #e5e5e5;
+        --card-background-color: #ffffff;
         --ha-card-background: var(--card-background-color);
         --ha-card-border-color: var(--divider-color);
         --ha-card-border-radius: 12px;
         --ha-card-border-width: 1px;
         --ha-card-box-shadow: none;
-        --rgb-primary-text-color: 230, 232, 234;
-        --rgb-secondary-text-color: 154, 163, 171;
-        --rgb-accent-color: 3, 169, 244;
+        --rgb-primary-text-color: 33, 33, 33;
+        --rgb-secondary-text-color: 114, 114, 114;
+        --rgb-accent-color: 255, 152, 0;
+        --rgb-primary-color: 0, 154, 199;
+        --rgb-card-background-color: 255, 255, 255;
+        --mdc-theme-primary: var(--primary-color);
+        --mdc-theme-secondary: var(--accent-color);
+      }
+      html[data-theme="dark"] {
+        color-scheme: dark;
+        --primary-text-color: #e1e1e1;
+        --secondary-text-color: #9b9b9b;
+        --disabled-text-color: #6f6f6f;
+        --primary-color: #009ac7;
+        --accent-color: #ff9800;
+        --error-color: #db4437;
+        --divider-color: rgba(225, 225, 225, 0.12);
+        --outline-color: rgba(225, 225, 225, 0.12);
+        --primary-background-color: #111111;
+        --secondary-background-color: #282828;
+        --card-background-color: #1c1c1c;
+        --ha-card-background: var(--card-background-color);
+        --ha-card-border-color: var(--divider-color);
+        --ha-card-border-radius: 12px;
+        --ha-card-border-width: 1px;
+        --ha-card-box-shadow: none;
+        --rgb-primary-text-color: 225, 225, 225;
+        --rgb-secondary-text-color: 155, 155, 155;
+        --rgb-accent-color: 255, 152, 0;
+        --rgb-primary-color: 0, 154, 199;
+        --rgb-card-background-color: 28, 28, 28;
         --mdc-theme-primary: var(--primary-color);
         --mdc-theme-secondary: var(--accent-color);
       }
@@ -37,15 +68,22 @@
         margin: 0;
         min-height: 100vh;
         font-family: Roboto, Noto, "Helvetica Neue", sans-serif;
-        background:
-          radial-gradient(ellipse at 50% 0%, #2c3238 0%, transparent 55%),
-          linear-gradient(180deg, #121416, #1a1c1e 40%, #0e1012);
+        background: var(--primary-background-color);
         color: var(--primary-text-color);
         padding: 24px 16px 48px;
       }
       header {
         max-width: 420px;
         margin: 0 auto 20px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .header-copy {
+        flex: 1 1 220px;
+        min-width: 0;
       }
       h1 {
         font-size: 1.15rem;
@@ -55,10 +93,50 @@
         margin: 0 0 6px;
       }
       .sub {
-        color: #9aa3ab;
+        color: var(--secondary-text-color);
         font-size: 0.88rem;
         letter-spacing: 0.03em;
         margin: 0;
+      }
+      .theme-control {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 0 0 auto;
+      }
+      .theme-control label {
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--secondary-text-color);
+      }
+      .theme-control select {
+        appearance: none;
+        min-height: 44px;
+        min-width: 120px;
+        padding: 10px 32px 10px 12px;
+        border: var(--ha-card-border-width, 1px) solid var(--outline-color);
+        border-radius: 6px;
+        background-color: var(--card-background-color);
+        background-image: linear-gradient(
+            45deg,
+            transparent 50%,
+            var(--secondary-text-color) 50%
+          ),
+          linear-gradient(135deg, var(--secondary-text-color) 50%, transparent 50%);
+        background-position:
+          calc(100% - 16px) calc(50% - 3px),
+          calc(100% - 11px) calc(50% - 3px);
+        background-size: 5px 5px, 5px 5px;
+        background-repeat: no-repeat;
+        color: var(--primary-text-color);
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .theme-control select:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
       }
       .stage {
         max-width: 420px;
@@ -68,13 +146,13 @@
         max-width: 420px;
         margin: 18px auto 0;
         padding: 12px 14px;
-        background: rgba(0, 0, 0, 0.35);
-        border: 1px solid #3a4046;
+        background: var(--secondary-background-color);
+        border: 1px solid var(--divider-color);
         border-radius: 8px;
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 11px;
         line-height: 1.45;
-        color: #9aa3ab;
+        color: var(--secondary-text-color);
         max-height: 180px;
         overflow: auto;
         white-space: pre-wrap;
@@ -88,9 +166,9 @@
       }
       .toolbar button {
         appearance: none;
-        border: 1px solid #5a636c;
-        background: linear-gradient(180deg, #4a525a, #2e343a);
-        color: #e6e8ea;
+        border: 1px solid var(--outline-color);
+        background: var(--secondary-background-color);
+        color: var(--primary-text-color);
         border-radius: 6px;
         padding: 10px 12px;
         min-height: 44px;
@@ -100,17 +178,34 @@
         cursor: pointer;
       }
       .toolbar button:hover {
-        border-color: #d4a017;
-        color: #d4a017;
+        border-color: var(--accent-color);
+        color: var(--accent-color);
       }
     </style>
+    <script>
+      (() => {
+        const key = "tapo-demo-theme";
+        const saved = localStorage.getItem(key);
+        const theme = saved === "light" || saved === "dark" ? saved : "dark";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
   </head>
   <body>
     <header>
-      <h1>Tapo C260 Card Demo</h1>
-      <p class="sub">
-        Vite + Lit · mock hass · Concept C industrial pad · no Home Assistant install
-      </p>
+      <div class="header-copy">
+        <h1>Tapo C260 Card Demo</h1>
+        <p class="sub">
+          Vite + Lit · mock hass · Concept C industrial pad · no Home Assistant install
+        </p>
+      </div>
+      <div class="theme-control">
+        <label for="theme-select">Theme</label>
+        <select id="theme-select" aria-label="HA theme">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
     </header>
 
     <div class="stage">

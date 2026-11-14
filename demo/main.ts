@@ -51,4 +51,22 @@ document.getElementById("clear-log")?.addEventListener("click", () => {
   logEl.textContent = "Service log…";
 });
 
+const THEME_KEY = "tapo-demo-theme";
+const themeSelect = document.getElementById(
+  "theme-select",
+) as HTMLSelectElement | null;
+if (themeSelect) {
+  const current =
+    document.documentElement.getAttribute("data-theme") === "light"
+      ? "light"
+      : "dark";
+  themeSelect.value = current;
+  themeSelect.addEventListener("change", () => {
+    const theme = themeSelect.value === "light" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem(THEME_KEY, theme);
+    log(`theme → ${theme}`);
+  });
+}
+
 log("Demo ready — nudge the pad or hold a direction.");
