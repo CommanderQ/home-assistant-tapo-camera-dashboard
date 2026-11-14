@@ -7,6 +7,16 @@ import { camera3d } from "./camera-3d";
 import { applyDeviceResolution } from "./device";
 import "./editor";
 import {
+  mdiChevronDown,
+  mdiChevronLeft,
+  mdiChevronRight,
+  mdiChevronUp,
+  mdiEyeOffOutline,
+  mdiEyeOutline,
+  mdiVolumeHigh,
+  mdiVolumeOff,
+} from "./icons";
+import {
   applyNudge,
   cameraTransform,
   createOrientation,
@@ -55,42 +65,12 @@ const MAX_ATTACH_RETRIES = 5;
 const ATTACH_RETRY_BASE_MS = 1500;
 const ATTACH_RETRY_MAX_MS = 30000;
 
-const muteIconOn = html`
-  <svg class="audio-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      fill="currentColor"
-      d="M4 9v6h3.2L12 19.5V4.5L7.2 9H4zm11.5 3c0-1.8-1-3.3-2.5-4v8c1.5-.7 2.5-2.2 2.5-4zm2.5 0c0 2.9-1.7 5.4-4.1 6.6l.9 1.7A8.5 8.5 0 0 0 20.5 12a8.5 8.5 0 0 0-5.7-8.3l-.9 1.7A6.5 6.5 0 0 1 18 12z"
-    />
-  </svg>
-`;
-
-const muteIconMuted = html`
-  <svg class="audio-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      fill="currentColor"
-      d="M4 9v6h3.2L12 19.5V4.5L7.2 9H4zm12.7-1.3-1.4 1.4 2.1 2.1-2.1 2.1 1.4 1.4 2.1-2.1 2.1 2.1 1.4-1.4-2.1-2.1 2.1-2.1-1.4-1.4-2.1 2.1-2.1-2.1z"
-    />
-  </svg>
-`;
-
-/** Matches tapo_control Privacy switch icons: eye / eye-off. */
-const privacyIconOpen = html`
-  <svg class="audio-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      fill="currentColor"
-      d="M12 5c-5 0-9.3 3.1-11 7.5C2.7 16.9 7 20 12 20s9.3-3.1 11-7.5C21.3 8.1 17 5 12 5zm0 12.5c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"
-    />
-  </svg>
-`;
-
-const privacyIconClosed = html`
-  <svg class="audio-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      fill="currentColor"
-      d="M2.1 3.5 1 4.6l3.1 3.1C2.5 9.2 1.3 10.7.5 12.5 2.2 16.9 6.5 20 11.5 20c1.8 0 3.5-.4 5-1.1l3.9 3.9 1.1-1.1L2.1 3.5zM12 7.5c.5 0 1 .1 1.4.3l-1.6 1.6A3 3 0 0 0 9 12c0 .2 0 .3.1.5L7.5 14A5 5 0 0 1 12 7.5zm0 12.5c-3.7 0-6.9-2-8.6-5 1-1.8 2.5-3.2 4.3-4.1l1.7 1.7c-.2.4-.4.9-.4 1.4 0 2.2 1.8 4 4 4 .5 0 1-.1 1.4-.4l1.6 1.6c-.9.5-1.9.8-3 .8zm9.5-7.5c-.5 1.1-1.2 2.1-2.1 2.9l-1.5-1.5c.5-.7.8-1.5.8-2.4a5 5 0 0 0-5-5c-.9 0-1.7.3-2.4.8L9.8 6.3C10.5 6.1 11.2 6 12 6c5 0 9.3 3.1 11 7.5-.4.9-.9 1.7-1.5 2.5z"
-    />
-  </svg>
-`;
+const PTZ_PATHS: Record<PtzDirection, string> = {
+  up: mdiChevronUp,
+  down: mdiChevronDown,
+  left: mdiChevronLeft,
+  right: mdiChevronRight,
+};
 
 @customElement("tapo-c260-card")
 export class TapoC260Card extends LitElement {
@@ -719,10 +699,10 @@ export class TapoC260Card extends LitElement {
                 <div class="ring-wrap">
                   <div class="ring">
                     <div class="ticks" aria-hidden="true"></div>
-                    ${this._dirButton("up", "▲", "Tilt up")}
-                    ${this._dirButton("down", "▼", "Tilt down")}
-                    ${this._dirButton("left", "◀", "Pan left")}
-                    ${this._dirButton("right", "▶", "Pan right")}
+                    ${this._dirButton("up", "Tilt up")}
+                    ${this._dirButton("down", "Tilt down")}
+                    ${this._dirButton("left", "Pan left")}
+                    ${this._dirButton("right", "Pan right")}
                     <div class="stage">
                       <div
                         class="orientation-view"
@@ -745,35 +725,31 @@ export class TapoC260Card extends LitElement {
               <div class="pad-media" aria-label="Privacy and stream audio">
                 ${config.privacy
                   ? html`
-                      <button
+                      <ha-icon-button
                         class=${classMap({
                           "privacy-toggle": true,
                           on: locked,
                         })}
-                        type="button"
-                        aria-label=${locked
+                        .path=${locked ? mdiEyeOffOutline : mdiEyeOutline}
+                        .label=${locked
                           ? "Disable privacy mode"
                           : "Enable privacy mode"}
-                        aria-pressed=${locked ? "true" : "false"}
+                        .selected=${locked}
                         @click=${this._onPrivacyClick}
-                      >
-                        ${locked ? privacyIconClosed : privacyIconOpen}
-                      </button>
+                      ></ha-icon-button>
                     `
                   : nothing}
                 <div class="pad-audio" aria-label="Stream audio">
-                  <button
+                  <ha-icon-button
                     class=${classMap({
                       "audio-mute": true,
                       muted: this._muted,
                     })}
-                    type="button"
-                    aria-label=${this._muted ? "Unmute stream" : "Mute stream"}
-                    aria-pressed=${this._muted ? "true" : "false"}
+                    .path=${this._muted ? mdiVolumeOff : mdiVolumeHigh}
+                    .label=${this._muted ? "Unmute stream" : "Mute stream"}
+                    .selected=${this._muted}
                     @click=${this._toggleMute}
-                  >
-                    ${this._muted ? muteIconMuted : muteIconOn}
-                  </button>
+                  ></ha-icon-button>
                   <input
                     class="audio-volume"
                     type="range"
@@ -793,26 +769,25 @@ export class TapoC260Card extends LitElement {
     `;
   }
 
-  private _dirButton(dir: PtzDirection, label: string, aria: string) {
+  private _dirButton(dir: PtzDirection, aria: string) {
     const locked = this._privacyLocked;
     return html`
-      <button
+      <ha-icon-button
         class=${classMap({
           btn: true,
           [dir]: true,
           active: this._activeDir === dir,
         })}
-        type="button"
         data-dir=${dir}
-        aria-label=${aria}
-        ?disabled=${locked}
+        .path=${PTZ_PATHS[dir]}
+        .label=${aria}
+        .disabled=${locked}
+        .selected=${this._activeDir === dir}
         @pointerdown=${(e: PointerEvent) => this._startHold(dir, e)}
         @pointerup=${() => this._stopHold()}
         @pointercancel=${() => this._stopHold()}
         @lostpointercapture=${() => this._stopHold()}
-      >
-        ${label}
-      </button>
+      ></ha-icon-button>
     `;
   }
 }
@@ -820,6 +795,118 @@ export class TapoC260Card extends LitElement {
 if (!customElements.get("ha-card")) {
   class HaCard extends HTMLElement {}
   customElements.define("ha-card", HaCard);
+}
+
+/** Demo / non-HA stub — real Lovelace provides ha-icon-button. */
+if (!customElements.get("ha-icon-button")) {
+  class HaIconButtonStub extends HTMLElement {
+    static get observedAttributes() {
+      return ["disabled"];
+    }
+
+    #path = "";
+    #label = "";
+    #disabled = false;
+    #selected = false;
+    #btn: HTMLButtonElement | null = null;
+    #svgPath: SVGPathElement | null = null;
+
+    get path() {
+      return this.#path;
+    }
+    set path(value: string) {
+      this.#path = value ?? "";
+      if (this.#svgPath) this.#svgPath.setAttribute("d", this.#path);
+    }
+
+    get label() {
+      return this.#label;
+    }
+    set label(value: string) {
+      this.#label = value ?? "";
+      if (this.#btn) {
+        this.#btn.setAttribute("aria-label", this.#label);
+        this.#btn.title = this.#label;
+      }
+    }
+
+    get disabled() {
+      return this.#disabled;
+    }
+    set disabled(value: boolean) {
+      this.#disabled = Boolean(value);
+      if (this.#disabled) this.setAttribute("disabled", "");
+      else this.removeAttribute("disabled");
+      if (this.#btn) this.#btn.disabled = this.#disabled;
+    }
+
+    get selected() {
+      return this.#selected;
+    }
+    set selected(value: boolean) {
+      this.#selected = Boolean(value);
+      if (this.#selected) this.setAttribute("selected", "");
+      else this.removeAttribute("selected");
+    }
+
+    attributeChangedCallback(name: string, _old: string | null, value: string | null) {
+      if (name === "disabled") this.disabled = value !== null;
+    }
+
+    connectedCallback() {
+      if (this.shadowRoot) return;
+      const root = this.attachShadow({ mode: "open" });
+      root.innerHTML = `
+        <style>
+          :host {
+            display: inline-flex;
+            color: inherit;
+            --ha-icon-button-size: 48px;
+            --mdc-icon-button-size: var(--ha-icon-button-size, 48px);
+            --mdc-icon-size: 24px;
+          }
+          button {
+            box-sizing: border-box;
+            width: var(--mdc-icon-button-size, var(--ha-icon-button-size, 48px));
+            height: var(--mdc-icon-button-size, var(--ha-icon-button-size, 48px));
+            margin: 0;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            -webkit-tap-highlight-color: transparent;
+          }
+          button:disabled {
+            color: var(--disabled-text-color, currentColor);
+            opacity: 0.38;
+            cursor: not-allowed;
+          }
+          :host([selected]) button {
+            background: rgba(var(--rgb-primary-text-color, 230, 232, 234), 0.1);
+          }
+          svg {
+            width: var(--mdc-icon-size, 24px);
+            height: var(--mdc-icon-size, 24px);
+            fill: currentColor;
+          }
+        </style>
+        <button type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path></path></svg>
+        </button>
+      `;
+      this.#btn = root.querySelector("button");
+      this.#svgPath = root.querySelector("path");
+      this.path = this.#path;
+      this.label = this.#label;
+      this.disabled = this.#disabled;
+      this.selected = this.#selected;
+    }
+  }
+  customElements.define("ha-icon-button", HaIconButtonStub);
 }
 
 window.customCards = window.customCards || [];

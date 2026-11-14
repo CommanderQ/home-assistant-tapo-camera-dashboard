@@ -7,6 +7,28 @@
     <style>
       :root {
         color-scheme: dark;
+        /* Approximate HA dark theme tokens so card chrome matches Lovelace. */
+        --primary-text-color: #e6e8ea;
+        --secondary-text-color: #9aa3ab;
+        --disabled-text-color: #6a737c;
+        --primary-color: #03a9f4;
+        --accent-color: #03a9f4;
+        --error-color: #db4437;
+        --divider-color: #3a4046;
+        --outline-color: #5a636c;
+        --primary-background-color: #111317;
+        --secondary-background-color: #2a2e32;
+        --card-background-color: #1c1f22;
+        --ha-card-background: var(--card-background-color);
+        --ha-card-border-color: var(--divider-color);
+        --ha-card-border-radius: 12px;
+        --ha-card-border-width: 1px;
+        --ha-card-box-shadow: none;
+        --rgb-primary-text-color: 230, 232, 234;
+        --rgb-secondary-text-color: 154, 163, 171;
+        --rgb-accent-color: 3, 169, 244;
+        --mdc-theme-primary: var(--primary-color);
+        --mdc-theme-secondary: var(--accent-color);
       }
       * {
         box-sizing: border-box;
@@ -14,11 +36,11 @@
       body {
         margin: 0;
         min-height: 100vh;
-        font-family: "DIN Alternate", "Helvetica Neue", "Arial Narrow", sans-serif;
+        font-family: Roboto, Noto, "Helvetica Neue", sans-serif;
         background:
           radial-gradient(ellipse at 50% 0%, #2c3238 0%, transparent 55%),
           linear-gradient(180deg, #121416, #1a1c1e 40%, #0e1012);
-        color: #e6e8ea;
+        color: var(--primary-text-color);
         padding: 24px 16px 48px;
       }
       header {
