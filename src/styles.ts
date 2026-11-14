@@ -674,7 +674,8 @@ export const cardStyles = css`
     width: 28px;
     /* Grow into leftover space only — do not height:100% crush mute above. */
     flex: 1 1 auto;
-    align-self: stretch;
+    /* Center under mute (parent align-items:center); stretch was overriding. */
+    align-self: center;
     min-height: 64px;
     height: auto;
     margin: 0;
