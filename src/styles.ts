@@ -116,14 +116,6 @@ export const cardStyles = css`
     align-items: center;
     justify-content: center;
     gap: var(--ha-space-3, 12px);
-    background:
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 2px,
-        rgba(255, 255, 255, 0.01) 2px,
-        rgba(255, 255, 255, 0.01) 3px
-      );
   }
 
   .angles {
@@ -625,7 +617,7 @@ export const cardStyles = css`
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: var(--ha-space-2, 8px);
+    gap: var(--ha-space-4, 16px);
     inline-size: var(--tapo-media-btn-size);
     block-size: 100%;
     flex: 0 0 auto;
