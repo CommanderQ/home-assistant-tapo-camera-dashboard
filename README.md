@@ -1,5 +1,7 @@
 # Tapo C260 Camera Card
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=CommanderQ&repository=home-assistant-tapo-camera-dashboard&category=plugin)
+
 Home Assistant Lovelace card (`custom:tapo-c260-card`) for a **Tapo C260**: live stream viewport, compact circular PTZ pad, and a Concept C industrial 3D orientation graphic.
 
 ![Local demo — stream viewport, circular PTZ pad with display-only 3D orientation, mute and volume](docs/demo-snapshot.png)
@@ -115,9 +117,11 @@ This is a Lovelace **frontend** card (Lit bundle + `hacs.json`). Install via HAC
 
 ### Option A — HACS (custom repository)
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=CommanderQ&repository=home-assistant-tapo-camera-dashboard&category=plugin)
+
 1. Install [HACS](https://hacs.xyz/) if you do not already have it.
-2. Open **HACS → Frontend** (three-dot menu) → **Custom repositories**.
-3. Add this repository:
+2. Click the badge above, or open **HACS → Frontend** (three-dot menu) → **Custom repositories**.
+3. Add this repository (if not already opened via the badge):
    - **Repository:** `https://github.com/CommanderQ/home-assistant-tapo-camera-dashboard`
    - **Category:** **Lovelace**
 4. Find **Tapo C260 Camera Card** in HACS → Frontend → download / install it.
