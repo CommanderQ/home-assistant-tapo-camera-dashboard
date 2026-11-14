@@ -1,24 +1,24 @@
 import { css } from "lit";
 
 /**
- * Card chrome consumes HA theme tokens; custom sizes live in --tapo-*.
+ * Card chrome consumes HA theme tokens; Concept C art lives in --tapo-*.
  * Do not assign --ha-icon-button-size / --mdc-* (that overrides theme).
- * Concept C industrial look is reserved for the CSS 3D camera graphic.
+ * Never use Concept C hex as a fallback on HA tokens — fall back to --tapo-* art instead.
  */
 export const cardStyles = css`
   :host {
-    /* Local aliases → HA tokens first; Concept C hex only as fallbacks. */
-    --tapo-bg: var(--primary-background-color, #1a1c1e);
-    --tapo-card: var(--card-background-color, #2a2e32);
-    --tapo-metal: var(--secondary-background-color, #3a4046);
-    --tapo-metal-hi: var(--divider-color, var(--outline-color, #5a636c));
-    --tapo-ink: var(--primary-text-color, #e6e8ea);
-    --tapo-muted: var(--secondary-text-color, #9aa3ab);
-    --tapo-amber: var(--accent-color, var(--mdc-theme-secondary, #d4a017));
-    --tapo-amber-dim: var(--primary-color, var(--mdc-theme-primary, #8a6a12));
-    --tapo-amber-rgb: var(--rgb-accent-color, 212, 160, 23);
-    --tapo-muted-rgb: var(--rgb-secondary-text-color, 154, 163, 171);
-    --tapo-ink-rgb: var(--rgb-primary-text-color, 230, 232, 234);
+    /* Primary Concept C art values (3D graphic + chrome fallbacks). */
+    --tapo-bg: #1a1c1e;
+    --tapo-card: #2a2e32;
+    --tapo-metal: #3a4046;
+    --tapo-metal-hi: #5a636c;
+    --tapo-ink: #e6e8ea;
+    --tapo-muted: #9aa3ab;
+    --tapo-amber: #d4a017;
+    --tapo-amber-dim: #8a6a12;
+    --tapo-amber-rgb: 212, 160, 23;
+    --tapo-muted-rgb: 154, 163, 171;
+    --tapo-ink-rgb: 230, 232, 234;
     /* Custom control sizes as --tapo-* (or use width/height); never assign --ha-*/--mdc-*. */
     --tapo-icon-button-size: 48px;
     --tapo-icon-size: 24px;
@@ -39,7 +39,7 @@ export const cardStyles = css`
     );
     border-width: var(--ha-card-border-width, 1px);
     border-style: solid;
-    border-color: var(--ha-card-border-color, var(--divider-color, #4a525a));
+    border-color: var(--ha-card-border-color, var(--divider-color, var(--tapo-metal-hi)));
     border-radius: var(--ha-card-border-radius, 12px);
     box-shadow: var(--ha-card-box-shadow, none);
     overflow: hidden;
@@ -59,7 +59,7 @@ export const cardStyles = css`
     min-block-size: 180px;
     background:
       linear-gradient(180deg, #3d4a52 0%, #2a3338 50%, #1f2629 100%);
-    border-block-end: 1px solid var(--divider-color, #15181b);
+    border-block-end: 1px solid var(--divider-color);
     display: grid;
     grid-template: 1fr / 1fr;
     overflow: hidden;
@@ -199,21 +199,21 @@ export const cardStyles = css`
     background: conic-gradient(
       from 0deg,
       transparent 0deg 8deg,
-      rgba(var(--tapo-amber-rgb), 0.35) 8deg 9deg,
+      rgba(var(--rgb-accent-color, var(--tapo-amber-rgb)), 0.35) 8deg 9deg,
       transparent 9deg 44deg,
-      rgba(var(--tapo-muted-rgb), 0.25) 44deg 45deg,
+      rgba(var(--rgb-secondary-text-color, var(--tapo-muted-rgb)), 0.25) 44deg 45deg,
       transparent 45deg 89deg,
-      rgba(var(--tapo-amber-rgb), 0.5) 89deg 91deg,
+      rgba(var(--rgb-accent-color, var(--tapo-amber-rgb)), 0.5) 89deg 91deg,
       transparent 91deg 134deg,
-      rgba(var(--tapo-muted-rgb), 0.25) 134deg 135deg,
+      rgba(var(--rgb-secondary-text-color, var(--tapo-muted-rgb)), 0.25) 134deg 135deg,
       transparent 135deg 179deg,
-      rgba(var(--tapo-amber-rgb), 0.5) 179deg 181deg,
+      rgba(var(--rgb-accent-color, var(--tapo-amber-rgb)), 0.5) 179deg 181deg,
       transparent 181deg 224deg,
-      rgba(var(--tapo-muted-rgb), 0.25) 224deg 225deg,
+      rgba(var(--rgb-secondary-text-color, var(--tapo-muted-rgb)), 0.25) 224deg 225deg,
       transparent 225deg 269deg,
-      rgba(var(--tapo-amber-rgb), 0.5) 269deg 271deg,
+      rgba(var(--rgb-accent-color, var(--tapo-amber-rgb)), 0.5) 269deg 271deg,
       transparent 271deg 314deg,
-      rgba(var(--tapo-muted-rgb), 0.25) 314deg 315deg,
+      rgba(var(--rgb-secondary-text-color, var(--tapo-muted-rgb)), 0.25) 314deg 315deg,
       transparent 315deg 360deg
     );
     mask: radial-gradient(circle, transparent 72%, #000 73% 92%, transparent 93%);
@@ -694,7 +694,7 @@ export const cardStyles = css`
 
   .error {
     padding: var(--ha-space-4, 16px);
-    color: var(--error-color, #f0a0a0);
+    color: var(--error-color);
     font-size: 0.9rem;
   }
 `;

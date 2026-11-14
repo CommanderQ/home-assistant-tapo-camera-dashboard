@@ -887,7 +887,7 @@ if (!customElements.get("ha-icon-button")) {
             cursor: not-allowed;
           }
           :host([selected]) button {
-            background: rgba(var(--rgb-primary-text-color, 230, 232, 234), 0.1);
+            background: rgba(var(--rgb-primary-text-color, var(--tapo-ink-rgb)), 0.1);
           }
           svg {
             width: var(--tapo-icon-size, 24px);
