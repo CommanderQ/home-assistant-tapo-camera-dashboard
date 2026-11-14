@@ -583,11 +583,14 @@ export class TapoC260Card extends LitElement {
     this._applyAudioToVideo();
   }
 
-  private _onPrivacyClick(event: Event): void {
+  private async _onPrivacyClick(event: Event): Promise<void> {
     event.stopPropagation();
     event.preventDefault();
     const entity = this._resolvedConfig?.privacy;
-    void togglePrivacy(this.hass, entity);
+    await togglePrivacy(this.hass, entity);
+    // Demo mocks may update hass.states without replacing `hass` (unlike mute's
+    // local @state). Real Lovelace passes a new hass object; this is then cheap.
+    this.requestUpdate();
   }
 
   private _onVolumeInput(event: Event): void {

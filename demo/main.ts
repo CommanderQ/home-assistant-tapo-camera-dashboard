@@ -11,13 +11,22 @@ function log(msg: string): void {
   logEl.textContent = lines.slice(0, 40).join("\n");
 }
 
+/** Late-bound so mock `onStatesChanged` can push a new `hass` ref into the card. */
+const demo: { card?: TapoC260Card } = {};
+
 const hass = createMockHass({
   onService(domain, service, data) {
     log(`${domain}.${service} ${JSON.stringify(data ?? {})}`);
   },
+  onStatesChanged() {
+    // Lit only updates `@property hass` on reference change — mirror Lovelace.
+    if (!demo.card) return;
+    demo.card.hass = { ...hass, states: { ...hass.states } };
+  },
 });
 
 const card = document.getElementById("card") as TapoC260Card;
+demo.card = card;
 card.setConfig({
   type: "custom:tapo-c260-card",
   camera: "camera.living_room_sd",
@@ -38,12 +47,11 @@ card.setConfig({
 card.hass = hass;
 
 document.getElementById("toggle-privacy")?.addEventListener("click", () => {
-  togglePrivacy(hass);
-  // Re-assign to trigger Lit property update
-  card.hass = { ...hass, states: { ...hass.states } };
-  log(
-    `privacy → ${hass.states["switch.living_room_privacy"]?.state ?? "unknown"}`,
-  );
+  void togglePrivacy(hass).then(() => {
+    log(
+      `privacy → ${hass.states["switch.living_room_privacy"]?.state ?? "unknown"}`,
+    );
+  });
 });
 
 document.getElementById("clear-log")?.addEventListener("click", () => {

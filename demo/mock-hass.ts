@@ -2,6 +2,8 @@ import type { HassEntity, HomeAssistant } from "../src/types";
 
 export interface MockHassOptions {
   onService?: (domain: string, service: string, data?: Record<string, unknown>) => void;
+  /** Fired after any mock state mutation so the demo can reassign `card.hass`. */
+  onStatesChanged?: () => void;
 }
 
 const ENTITIES: Record<string, HassEntity> = {
@@ -69,35 +71,58 @@ const ENTITIES: Record<string, HassEntity> = {
   },
 };
 
+function setEntityState(
+  states: Record<string, HassEntity>,
+  entityId: string,
+  state: string,
+): boolean {
+  const ent = states[entityId];
+  if (!ent || ent.state === state) return false;
+  // Replace the entity object — in-place mutation does not notify Lit `hass`.
+  states[entityId] = { ...ent, state };
+  return true;
+}
+
 export function createMockHass(options: MockHassOptions = {}): HomeAssistant {
   const states = structuredClone(ENTITIES);
+
+  const notify = (): void => {
+    options.onStatesChanged?.();
+  };
 
   const hass: HomeAssistant = {
     states,
     async callService(domain, service, data) {
       options.onService?.(domain, service, data);
 
+      let changed = false;
+
       if (domain === "switch" && data?.entity_id) {
         const id = String(data.entity_id);
         const ent = states[id];
         if (ent) {
           if (service === "toggle") {
-            ent.state = ent.state === "on" ? "off" : "on";
+            changed = setEntityState(
+              states,
+              id,
+              ent.state === "on" ? "off" : "on",
+            );
           } else if (service === "turn_on") {
-            ent.state = "on";
+            changed = setEntityState(states, id, "on");
           } else if (service === "turn_off") {
-            ent.state = "off";
+            changed = setEntityState(states, id, "off");
           }
         }
       }
 
       if (domain === "button" && service === "press" && data?.entity_id) {
         const id = String(data.entity_id);
-        const ent = states[id];
-        if (ent) {
-          ent.state = new Date().toISOString();
+        if (states[id]) {
+          changed = setEntityState(states, id, new Date().toISOString());
         }
       }
+
+      if (changed) notify();
     },
     async callWS<T = unknown>(message: Record<string, unknown>): Promise<T> {
       if (message.type === "camera/stream") {
@@ -113,8 +138,9 @@ export function createMockHass(options: MockHassOptions = {}): HomeAssistant {
   return hass;
 }
 
-export function togglePrivacy(hass: HomeAssistant): void {
-  const ent = hass.states["switch.living_room_privacy"];
-  if (!ent) return;
-  ent.state = ent.state === "on" ? "off" : "on";
+/** Demo chrome helper — same path as the card (`switch.toggle`). */
+export async function togglePrivacy(hass: HomeAssistant): Promise<void> {
+  await hass.callService("switch", "toggle", {
+    entity_id: "switch.living_room_privacy",
+  });
 }
