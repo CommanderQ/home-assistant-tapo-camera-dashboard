@@ -17,7 +17,7 @@ HACS [Tapo: Cameras Control](https://github.com/JurajNyiri/HomeAssistant-Tapo-Co
 
 - PTZ / calibrate / privacy / angle / volume entities come from `tapo_control`
 - The card presses buttons and reads entity state; it does not speak the Tapo proprietary protocol itself
-- Device autofill in the editor (`src/device.ts`, `src/editor.ts`) assumes `tapo_control` entity naming
+- Device autofill in the editor (`src/device.ts`, `src/editor.ts`) maps `camera.*_hd_stream` → `camera_hd` and `camera.*_sd_stream` → `camera` (prefers non-`_direct`)
 
 Do not invent a parallel integration or hard-code cloud credentials in the card.
 

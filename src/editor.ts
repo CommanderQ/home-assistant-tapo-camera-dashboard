@@ -79,14 +79,14 @@ const EDITOR_SCHEMA: HaFormSchema[] = [
         required: true,
         label: "Camera (SD / fallback)",
         helper:
-          "Lower-quality camera entity. Used as primary when Camera HD is empty; otherwise a fallback source only.",
+          "Usually camera.*_sd_stream (RTSP stream2). Primary only when Camera HD is empty; otherwise fallback.",
         selector: { entity: { domain: "camera" } },
       },
       {
         name: "camera_hd",
         label: "Camera HD (preferred)",
         helper:
-          "Preferred live entity when set. Both HD and SD are collected as sources (HD first); there is no PTZ quality switch.",
+          "Usually camera.*_hd_stream (RTSP stream1). Preferred live entity; SD stays fallback only — no PTZ quality switch.",
         selector: { entity: { domain: "camera" } },
       },
       {

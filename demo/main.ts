@@ -29,8 +29,8 @@ const card = document.getElementById("card") as TapoC260Card;
 demo.card = card;
 card.setConfig({
   type: "custom:tapo-c260-card",
-  camera: "camera.living_room_sd",
-  camera_hd: "camera.living_room_hd",
+  camera: "camera.living_room_sd_stream",
+  camera_hd: "camera.living_room_hd_stream",
   // Absolute go2rtc URL → Lit renders stream.mp4 + stream.m3u8 <source> children
   // (demo host has no HA base URL, so stream names alone would not resolve).
   go2rtc: "http://127.0.0.1:1984/api/ws?src=living_room",
