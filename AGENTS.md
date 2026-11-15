@@ -115,13 +115,13 @@ SD-card / Media Source history UI is **researched and deferred**.
 - **Do not implement** history UI, Media Browser deep-links, or clip players unless the user explicitly asks
 - go2rtc stays **live only** — it does not list camera SD or Tapo Care
 
-## Highest-quality stream zoom: deferred
+## Highest-quality stream zoom
 
-Pinch-zoom that guarantees native decode detail (intrinsic-sized media + fit×zoom CSS transforms) is **researched and deferred**.
+Pinch-zoom uses decode-near (intrinsic) media layout under a clipped `.stream`, with CSS `scale(fit × zoom)` so zoom can reveal native detail.
 
-- Plan: [`docs/future/zoom-quality-proposal.md`](docs/future/zoom-quality-proposal.md)
-- Today: container-sized `.stream-media` + `object-fit: contain` + CSS `transform` crop (`src/viewport-zoom.ts`)
-- **Do not implement** the intrinsic / wrapper layout change unless the user explicitly asks
+- Notes / validation: [`docs/future/zoom-quality-proposal.md`](docs/future/zoom-quality-proposal.md)
+- Implementation: `.stream-zoom` in `src/tapo-c260-card.ts` / `src/styles.ts`; math in `src/viewport-zoom.ts`
+- Still resets to 1× on stream reconnect / restart
 
 ## Source map (where to edit)
 

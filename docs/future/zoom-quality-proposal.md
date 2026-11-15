@@ -1,9 +1,14 @@
 # Highest-quality stream zoom proposal
 
-**Status:** research only — do not implement yet  
+**Status:** implemented (pending Companion validation)  
 **Card:** `custom:tapo-c260-card`  
 **Task:** HACD-54  
-**Related code:** `src/viewport-zoom.ts`, `src/styles.ts` (`.stream` / `.stream-media`), `src/tapo-c260-card.ts` (gesture + transform), `src/stream.ts` (attach / decode)
+**Related code:** `src/viewport-zoom.ts`, `src/styles.ts` (`.stream` / `.stream-zoom` / `.stream-media`), `src/tapo-c260-card.ts` (gesture + transform), `src/stream.ts` (attach / decode)
+
+### Done / remaining
+
+- **Done:** Intrinsic (decode-near) `.stream-zoom` layout + CSS `translate` / `scale(fit × zoom)`; ResizeObserver + media metadata sync; reconnect still resets zoom to 1×; box-fill + `object-fit: contain` fallback when intrinsic unknown.
+- **Remaining:** Mike validates on Companion (pinch to max on a detailed scene vs pre-change soft upsample). No further code unless validation finds a regression.
 
 ---
 
@@ -146,23 +151,12 @@ Apply the same wrapper + intrinsic sizing to the MJPEG `<img>`. Nested `<video>`
 - Digital zoom that drives camera PTZ / optical zoom  
 - Runtime SD↔HD switching for zoom (HD remain preferred at attach time)  
 - Changing go2rtc encode resolution from the card  
-- Implementing the layout change in this research task  
 
 ---
 
-## Suggested validation before coding
+## Companion validation checklist
 
-1. On Companion (or remote debug): note `video.videoWidth/Height` vs `.stream` `getBoundingClientRect()` and DPR.  
-2. Pinch to max on current build; screenshot a fine detail (text, leaf edges).  
-3. Prototype intrinsic-sized + `scale(fit * zoom)` on the demo page; compare the same crop.  
+1. Note `video.videoWidth/Height` vs `.stream` box and DPR on the device under test.  
+2. Pinch to max on a detailed scene (text, foliage, edges); confirm sharper than the old container-sized zoom.  
+3. Confirm 1× still looks contain-fitted (letterboxed), and reconnect / stream restart resets to 1×.  
 4. Watch memory / dropped frames on a 4K go2rtc WebRTC session during pan.
-
----
-
-## Implementation sketch (future PR only)
-
-1. Introduce `.stream-zoom` wrapper in `tapo-c260-card.ts` render.  
-2. Size media from `_mediaIntrinsic()`; apply `fit * zoom` in `viewportCss` (or a sibling helper).  
-3. Adjust `clampViewport` / tests for intrinsic layout.  
-4. ResizeObserver → reclamp.  
-5. Manual Companion check; no `package.json` version bump until explicitly releasing.
