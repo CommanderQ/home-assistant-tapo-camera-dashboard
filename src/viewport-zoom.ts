@@ -178,12 +178,30 @@ export function panBy(
 }
 
 /**
- * Paint transform. `fit` is 1 for the legacy box-fill path; for intrinsic
- * layout use `fitScale(box, media)` so 1× zoom is contain-fitted via CSS scale.
+ * Paint transform for `.stream-zoom`.
+ *
+ * Intrinsic path (`center=true`): element is `position:absolute; left/top:50%`
+ * at decode size, so we always lead with `translate(-50%, -50%)` to center,
+ * then pan, then `scale(fit × zoom)` (contain at 1×).
+ *
+ * Fallback path (`center=false`): element fills the viewport; only pan/zoom.
  */
-export function viewportCss(t: ViewportTransform, fit = 1): string {
+export function viewportCss(
+  t: ViewportTransform,
+  fit = 1,
+  center = false,
+): string {
   const f = fit > 0 ? fit : 1;
   const s = f * t.scale;
+  const pan =
+    Math.abs(t.x) < 1e-6 && Math.abs(t.y) < 1e-6
+      ? ""
+      : `translate(${t.x}px, ${t.y}px) `;
+  if (center) {
+    // Never omit: without -50%/-50% the decode-sized layer sits bottom-right
+    // of the stream (top-left anchored at the viewport center).
+    return `${pan}translate(-50%, -50%) scale(${s})`;
+  }
   if (
     Math.abs(s - 1) < 1e-6 &&
     Math.abs(t.x) < 1e-6 &&
@@ -191,7 +209,7 @@ export function viewportCss(t: ViewportTransform, fit = 1): string {
   ) {
     return "none";
   }
-  return `translate(${t.x}px, ${t.y}px) scale(${s})`;
+  return `${pan}scale(${s})`;
 }
 
 export function touchDistance(a: Touch, b: Touch): number {

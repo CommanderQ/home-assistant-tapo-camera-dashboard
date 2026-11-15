@@ -94,9 +94,12 @@ export class TapoC260Card extends LitElement {
   @state() private _viewport: ViewportTransform = IDENTITY_VIEWPORT;
   /**
    * Decode-near CSS size for `.stream-zoom` (null → box-fill + object-fit fallback).
-   * Zoom paints `scale(fit × zoom)` so pinch can reveal native detail.
+   * Only set once the stream box is known so we never paint intrinsic at scale(1).
+   * Zoom paints `translate(-50%,-50%) scale(fit × zoom)` so pinch can reveal native detail.
    */
   @state() private _mediaLayout: MediaIntrinsic | null = null;
+  /** Latest `.stream` content box (ResizeObserver) — used for fit during render. */
+  @state() private _streamSize: { width: number; height: number } | null = null;
   /** Default muted so autoplay is allowed; custom chrome only (no native controls). */
   @state() private _muted = true;
   @state() private _volume = 1;
@@ -266,24 +269,41 @@ export class TapoC260Card extends LitElement {
     const el = this._streamRef.value;
     if (!el) return;
     if (!this._streamResizeObserver) {
-      this._streamResizeObserver = new ResizeObserver(() => {
+      this._streamResizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        const w = entry?.contentRect.width ?? 0;
+        const h = entry?.contentRect.height ?? 0;
+        if (w > 0 && h > 0) {
+          const prev = this._streamSize;
+          if (!prev || prev.width !== w || prev.height !== h) {
+            this._streamSize = { width: w, height: h };
+          }
+        }
         this._syncMediaLayout();
         this._reclampViewport();
       });
     }
     this._streamResizeObserver.disconnect();
     this._streamResizeObserver.observe(el);
+    // Seed size immediately (observer may not fire until next layout).
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) {
+      const prev = this._streamSize;
+      if (!prev || prev.width !== r.width || prev.height !== r.height) {
+        this._streamSize = { width: r.width, height: r.height };
+      }
+    }
   }
 
   /** Refresh decode-near layout size from the active video / MJPEG element. */
   private _syncMediaLayout(): void {
     const intrinsic = this._mediaIntrinsic();
-    const box = this._streamBox();
+    const box = this._fitBox();
+    // Require a positive stream box before switching to intrinsic layout —
+    // otherwise render would use fit=1 and show a tiny/cornered decode tile.
     let next: MediaIntrinsic | null = null;
     if (intrinsic && box) {
       next = layoutMediaSize(intrinsic, box.width, box.height);
-    } else if (intrinsic) {
-      next = { width: intrinsic.width, height: intrinsic.height };
     }
     const same =
       (next === null && this._mediaLayout === null) ||
@@ -296,8 +316,22 @@ export class TapoC260Card extends LitElement {
     this._reclampViewport();
   }
 
+  /** Prefer observed stream size; fall back to a live measurement. */
+  private _fitBox(): { width: number; height: number } | null {
+    if (
+      this._streamSize &&
+      this._streamSize.width > 0 &&
+      this._streamSize.height > 0
+    ) {
+      return this._streamSize;
+    }
+    const live = this._streamBox();
+    if (!live) return null;
+    return { width: live.width, height: live.height };
+  }
+
   private _reclampViewport(): void {
-    const box = this._streamBox();
+    const box = this._fitBox();
     if (!box) return;
     const next = clampViewport(
       this._viewport,
@@ -328,6 +362,7 @@ export class TapoC260Card extends LitElement {
     this._streamMode = "none";
     this._httpSources = [];
     this._mediaLayout = null;
+    // Keep _streamSize — viewport geometry is independent of the attach session.
     this._resetViewport();
   }
 
@@ -564,6 +599,14 @@ export class TapoC260Card extends LitElement {
     const box = this._streamBox();
     if (!box) return;
     const media = this._mediaLayout;
+    // Gesture math uses the live box; keep observed size in sync for fit paint.
+    if (
+      !this._streamSize ||
+      this._streamSize.width !== box.width ||
+      this._streamSize.height !== box.height
+    ) {
+      this._streamSize = { width: box.width, height: box.height };
+    }
 
     if (event.touches.length === 2) {
       event.preventDefault();
@@ -714,18 +757,20 @@ export class TapoC260Card extends LitElement {
     const showPlaceholder = !this._streamReady;
     const domSources = filterNativeSourceCandidates(this._httpSources);
     const layout = this._mediaLayout;
-    const box = this._streamBox();
+    const box = this._fitBox();
     const useIntrinsic = !!(
       layout &&
       layout.width > 0 &&
-      layout.height > 0
+      layout.height > 0 &&
+      box &&
+      box.width > 0 &&
+      box.height > 0
     );
-    const fit =
-      useIntrinsic && box
-        ? fitScale(box.width, box.height, layout!.width, layout!.height)
-        : 1;
+    const fit = useIntrinsic
+      ? fitScale(box!.width, box!.height, layout!.width, layout!.height)
+      : 1;
     const zoomStyle = styleMap({
-      transform: viewportCss(this._viewport, useIntrinsic ? fit : 1),
+      transform: viewportCss(this._viewport, fit, useIntrinsic),
       ...(useIntrinsic
         ? {
             width: `${layout!.width}px`,
@@ -750,7 +795,13 @@ export class TapoC260Card extends LitElement {
             @touchend=${this._onStreamTouchEnd}
             @touchcancel=${this._onStreamTouchEnd}
           >
-            <div class="stream-zoom" style=${zoomStyle}>
+            <div
+              class=${classMap({
+                "stream-zoom": true,
+                "stream-zoom--intrinsic": useIntrinsic,
+              })}
+              style=${zoomStyle}
+            >
               <video
                 ${ref(this._videoRef)}
                 class="stream-media"

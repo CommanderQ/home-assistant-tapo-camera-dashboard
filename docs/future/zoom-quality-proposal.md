@@ -7,8 +7,8 @@
 
 ### Done / remaining
 
-- **Done:** Intrinsic (decode-near) `.stream-zoom` layout + CSS `translate` / `scale(fit × zoom)`; ResizeObserver + media metadata sync; reconnect still resets zoom to 1×; box-fill + `object-fit: contain` fallback when intrinsic unknown.
-- **Remaining:** Mike validates on Companion (pinch to max on a detailed scene vs pre-change soft upsample). No further code unless validation finds a regression.
+- **Done:** Intrinsic (decode-near) `.stream-zoom` layout + CSS `translate(-50%,-50%) scale(fit × zoom)` with absolute `left/top: 50%` centering (avoids grid `place-self` / min-content blowout that painted a tiny bottom-right tile on load); ResizeObserver box state required before switching to intrinsic; reconnect still resets zoom to 1×; box-fill + `object-fit: contain` fallback when intrinsic/box unknown.
+- **Remaining:** Mike re-checks Companion — reload fills the viewport at 1×; pinch still sharp.
 
 ---
 
