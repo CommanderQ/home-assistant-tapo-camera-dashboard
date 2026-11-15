@@ -36,8 +36,46 @@ export function entitiesForDevice(
 }
 
 /**
+ * tapo_control names cameras like:
+ *   camera.<alias>_hd_stream / _sd_stream
+ *   camera.<alias>_hd_stream_direct / _sd_stream_direct
+ *   (older / slug variants) …_hd / …_sd
+ * Matching only `endsWith("_hd")` misses `_hd_stream` and mis-assigns HD as SD.
+ */
+export function isDirectCameraEntity(entityId: string): boolean {
+  return /(?:^|_)direct(?:_|$)/i.test(entityObjectId(entityId));
+}
+
+export function isTelephotoCameraEntity(entityId: string): boolean {
+  return /telephoto/i.test(entityObjectId(entityId));
+}
+
+/** Main (non-telephoto) HD: stream1 / “HD Stream”. */
+export function isHdCameraEntity(entityId: string): boolean {
+  const id = entityObjectId(entityId).toLowerCase();
+  if (isTelephotoCameraEntity(entityId)) return false;
+  return /(?:^|_)hd(?:_stream)?(?:_direct)?$/.test(id);
+}
+
+/** Main (non-telephoto) SD: stream2 / “SD Stream”. */
+export function isSdCameraEntity(entityId: string): boolean {
+  const id = entityObjectId(entityId).toLowerCase();
+  if (isTelephotoCameraEntity(entityId)) return false;
+  return /(?:^|_)sd(?:_stream)?(?:_direct)?$/.test(id);
+}
+
+/** Prefer RTSP entities over “(Direct)” when both exist. */
+export function preferNonDirectCamera(
+  entityIds: string[],
+): string | undefined {
+  if (!entityIds.length) return undefined;
+  const nonDirect = entityIds.filter((id) => !isDirectCameraEntity(id));
+  return nonDirect[0] ?? entityIds[0];
+}
+
+/**
  * Map a tapo_control device's entities onto card config fields.
- * Prefers conventional `_sd` / `_hd` / `_move_*` suffixes from the integration.
+ * Prefers conventional `_hd_stream` / `_sd_stream` (and `_hd` / `_sd`) suffixes.
  */
 export function resolveConfigFromDevice(
   hass: HomeAssistant | undefined,
@@ -55,14 +93,14 @@ export function resolveConfigFromDevice(
   const switches = ids.filter((id) => id.startsWith("switch."));
   const selects = ids.filter((id) => id.startsWith("select."));
 
+  const hdCandidates = cameras.filter(isHdCameraEntity);
+  const sdCandidates = cameras.filter(isSdCameraEntity);
+
+  const cameraHd = preferNonDirectCamera(hdCandidates);
   const cameraSd =
-    findBySuffixes(cameras, ["_sd"]) ??
-    cameras.find((id) => !endsWithObjectId(id, "_hd")) ??
-    cameras[0];
-  const cameraHd =
-    findBySuffixes(cameras, ["_hd"]) ??
-    (cameraSd && cameras.find((id) => id !== cameraSd)) ??
-    undefined;
+    preferNonDirectCamera(sdCandidates) ??
+    // Last resort: only one unlabeled camera on the device.
+    (cameras.length === 1 ? cameras[0] : undefined);
 
   const ptz = {
     up: findBySuffixes(buttons, ["_move_up"]) ?? base.ptz?.up ?? "",
@@ -83,7 +121,8 @@ export function resolveConfigFromDevice(
   const next: Partial<TapoC260CardConfig> = {
     ...base,
     device: deviceId,
-    camera: cameraSd || base.camera || "",
+    // SD field is required on the card; fall back to HD only if no SD exists.
+    camera: cameraSd || cameraHd || base.camera || "",
     ptz,
   };
 

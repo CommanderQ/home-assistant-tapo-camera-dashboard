@@ -7,22 +7,22 @@ export interface MockHassOptions {
 }
 
 const ENTITIES: Record<string, HassEntity> = {
-  "camera.living_room_sd": {
-    entity_id: "camera.living_room_sd",
+  "camera.living_room_sd_stream": {
+    entity_id: "camera.living_room_sd_stream",
     state: "idle",
     attributes: {
-      friendly_name: "Living Room SD",
+      friendly_name: "Living Room SD Stream",
       // STREAM feature so the card attempts live paths in the demo.
       supported_features: 2,
       frontend_stream_type: "hls",
       access_token: "demo-token",
     },
   },
-  "camera.living_room_hd": {
-    entity_id: "camera.living_room_hd",
+  "camera.living_room_hd_stream": {
+    entity_id: "camera.living_room_hd_stream",
     state: "idle",
     attributes: {
-      friendly_name: "Living Room HD",
+      friendly_name: "Living Room HD Stream",
       supported_features: 2,
       frontend_stream_type: "hls",
       access_token: "demo-token-hd",
@@ -126,7 +126,9 @@ export function createMockHass(options: MockHassOptions = {}): HomeAssistant {
     },
     async callWS<T = unknown>(message: Record<string, unknown>): Promise<T> {
       if (message.type === "camera/stream") {
-        const entityId = String(message.entity_id ?? "camera.living_room_sd");
+        const entityId = String(
+          message.entity_id ?? "camera.living_room_sd_stream",
+        );
         return {
           url: `https://demo.invalid/api/hls/${encodeURIComponent(entityId)}/playlist.m3u8`,
         } as T;

@@ -43,9 +43,10 @@ After the card resource is loaded, use the dashboard UI:
 type: custom:tapo-c260-card
 # Preferred: set device and let the card/editor resolve entities
 # device: <tapo_control device id>
-camera: camera.living_room_sd
-camera_hd: camera.living_room_hd
+camera: camera.living_room_sd_stream
+camera_hd: camera.living_room_hd_stream
 # Optional go2rtc — editor: Advanced → go2rtc stream (optional)
+# Prefer a go2rtc src that points at RTSP stream1 (HD), not stream2
 # go2rtc: living_room
 # go2rtc: ws://192.168.1.10:1984/api/ws?src=living_room
 ptz:
@@ -59,7 +60,7 @@ ptz:
 privacy: switch.living_room_privacy
 ```
 
-Entity IDs are instance-specific — the visual editor fills them from the device. Manual YAML can still paste IDs from the `tapo_control` device page.
+Entity IDs are instance-specific — the visual editor fills them from the device. `tapo_control` typically exposes `camera.<name>_hd_stream` (RTSP `stream1`) and `camera.<name>_sd_stream` (`stream2`), plus optional `*_direct` variants; device autofill prefers non-direct HD/SD. Manual YAML can still paste IDs from the `tapo_control` device page.
 
 ### Stream behavior
 
