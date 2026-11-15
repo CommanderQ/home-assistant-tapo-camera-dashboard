@@ -68,19 +68,25 @@ export const cardStyles = css`
   }
 
   /*
-   * Intrinsic-sized (or fallback fill) media layer. Pinch/pan transform lives
-   * here; .stream keeps the clip rect. place-self centers the decode-sized box.
+   * Media zoom layer. Absolute so decode-sized layout never expands the grid
+   * track (min-width:auto) or depends on place-self for centering.
+   * Intrinsic path: left/top 50% + translate(-50%,-50%) scale(fit×zoom).
+   * Fallback: inset 0 (fill) + object-fit contain on .stream-media.
    */
   .stream-zoom {
-    grid-area: 1 / 1;
-    place-self: center;
+    position: absolute;
     z-index: 1;
     display: grid;
     grid-template: 1fr / 1fr;
-    inline-size: 100%;
-    block-size: 100%;
+    inset: 0;
     transform-origin: center center;
     will-change: transform;
+  }
+
+  .stream-zoom--intrinsic {
+    inset: auto;
+    left: 50%;
+    top: 50%;
   }
 
   .stream-media {
