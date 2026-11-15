@@ -106,6 +106,23 @@ Live press-to-talk (browser mic → C260 speaker) is **researched and deferred**
 - **Do not implement** talkback, mic button, or duplex renegotiation unless the user explicitly asks
 - Current mute/volume chrome is **downlink only**
 
+## Recorded video history: deferred
+
+SD-card / Media Source history UI is **researched and deferred**.
+
+- Plan: [`docs/future/recorded-video-history-plan.md`](docs/future/recorded-video-history-plan.md)
+- Preferred future path: in-card browse/play via `tapo_control` Media Source (`media-source://tapo_control/...`)
+- **Do not implement** history UI, Media Browser deep-links, or clip players unless the user explicitly asks
+- go2rtc stays **live only** — it does not list camera SD or Tapo Care
+
+## Highest-quality stream zoom: deferred
+
+Pinch-zoom that guarantees native decode detail (intrinsic-sized media + fit×zoom CSS transforms) is **researched and deferred**.
+
+- Plan: [`docs/future/zoom-quality-proposal.md`](docs/future/zoom-quality-proposal.md)
+- Today: container-sized `.stream-media` + `object-fit: contain` + CSS `transform` crop (`src/viewport-zoom.ts`)
+- **Do not implement** the intrinsic / wrapper layout change unless the user explicitly asks
+
 ## Source map (where to edit)
 
 | Area | Files |
