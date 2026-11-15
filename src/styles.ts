@@ -67,16 +67,29 @@ export const cardStyles = css`
     touch-action: none;
   }
 
+  /*
+   * Intrinsic-sized (or fallback fill) media layer. Pinch/pan transform lives
+   * here; .stream keeps the clip rect. place-self centers the decode-sized box.
+   */
+  .stream-zoom {
+    grid-area: 1 / 1;
+    place-self: center;
+    z-index: 1;
+    display: grid;
+    grid-template: 1fr / 1fr;
+    inline-size: 100%;
+    block-size: 100%;
+    transform-origin: center center;
+    will-change: transform;
+  }
+
   .stream-media {
     grid-area: 1 / 1;
     inline-size: 100%;
     block-size: 100%;
-    /* Native aspect — letterbox instead of crop/stretch. */
+    /* Fallback / matching-aspect path — letterbox when zoom wrapper fills .stream. */
     object-fit: contain;
     background: #0e1012;
-    z-index: 1;
-    transform-origin: center center;
-    will-change: transform;
   }
 
   /* HTML-native <video> fallback (last child after <source>s). */

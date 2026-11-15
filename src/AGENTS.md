@@ -13,5 +13,8 @@ Card implementation lives here. Read root [`AGENTS.md`](../AGENTS.md) first (inc
 ## Do not start here without an ask
 
 - Mic / talkback / sendonly transceiver (see `docs/future/talkback-mic-plan.md`)
+- In-card recorded history / Media Source UI (see `docs/future/recorded-video-history-plan.md`)
 - Runtime SD↔HD switching
 - Multi-camera dashboards
+
+Pinch-zoom quality model: intrinsic `.stream-zoom` + `scale(fit × zoom)` — see `docs/future/zoom-quality-proposal.md`.

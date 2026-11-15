@@ -74,7 +74,7 @@ Playback is **not** a single `.m3u8` stuck on `<video src>` (that fails on Chrom
 
 When both `camera` and `camera_hd` are set, the card **prefers HD** as the primary WebRTC entity and lists HD HTTP candidates before SD. Browsers pick the first *compatible* `<source>`, not “highest quality” by themselves — quality preference comes from our candidate order and primary-entity choice, not from runtime switching. PTZ no longer tears down / swaps streams.
 
-Pinch / pan only crops the received pixels locally. Stream reconnect or player restart resets zoom to 1×.
+Pinch / pan is a local CSS crop of the live decode (`scale(fit × zoom)` on a decode-near media layer). Stream reconnect or player restart resets zoom to 1×.
 
 ### go2rtc URL expectations
 

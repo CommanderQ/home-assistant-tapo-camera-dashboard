@@ -50,6 +50,9 @@ import type {
 } from "./types";
 import {
   IDENTITY_VIEWPORT,
+  clampViewport,
+  fitScale,
+  layoutMediaSize,
   panBy,
   touchDistance,
   touchMidpoint,
@@ -89,6 +92,11 @@ export class TapoC260Card extends LitElement {
   @state() private _error: string | null = null;
   /** CSS viewport crop of the received stream — never drives PTZ. */
   @state() private _viewport: ViewportTransform = IDENTITY_VIEWPORT;
+  /**
+   * Decode-near CSS size for `.stream-zoom` (null → box-fill + object-fit fallback).
+   * Zoom paints `scale(fit × zoom)` so pinch can reveal native detail.
+   */
+  @state() private _mediaLayout: MediaIntrinsic | null = null;
   /** Default muted so autoplay is allowed; custom chrome only (no native controls). */
   @state() private _muted = true;
   @state() private _volume = 1;
@@ -100,6 +108,7 @@ export class TapoC260Card extends LitElement {
   /** Visible sibling for MJPEG live (cannot play inside <video>). */
   private _mjpegImgRef = createRef<HTMLImageElement>();
   private _streamRef = createRef<HTMLDivElement>();
+  private _streamResizeObserver: ResizeObserver | null = null;
   private _angleHideTimer: ReturnType<typeof setTimeout> | null = null;
   private _retryTimer: ReturnType<typeof setTimeout> | null = null;
   private _streamHandle: StreamHandle | null = null;
@@ -191,6 +200,11 @@ export class TapoC260Card extends LitElement {
     return applyDeviceResolution(this.hass, this._config);
   }
 
+  protected firstUpdated(): void {
+    this._ensureStreamResizeObserver();
+    this._syncMediaLayout();
+  }
+
   protected updated(changed: Map<string, unknown>): void {
     if (changed.has("hass") || changed.has("_config")) {
       if (this._privacyLocked) {
@@ -199,6 +213,10 @@ export class TapoC260Card extends LitElement {
       }
       void this._syncStream();
     }
+    this._ensureStreamResizeObserver();
+    if (changed.has("_streamReady") || changed.has("_streamMode")) {
+      this._syncMediaLayout();
+    }
   }
 
   disconnectedCallback(): void {
@@ -206,6 +224,8 @@ export class TapoC260Card extends LitElement {
     this._stopHold(true);
     this._clearAngleHideTimer();
     this._clearRetryTimer();
+    this._streamResizeObserver?.disconnect();
+    this._streamResizeObserver = null;
     this._stopStream();
   }
 
@@ -242,6 +262,62 @@ export class TapoC260Card extends LitElement {
     this._viewport = IDENTITY_VIEWPORT;
   }
 
+  private _ensureStreamResizeObserver(): void {
+    const el = this._streamRef.value;
+    if (!el) return;
+    if (!this._streamResizeObserver) {
+      this._streamResizeObserver = new ResizeObserver(() => {
+        this._syncMediaLayout();
+        this._reclampViewport();
+      });
+    }
+    this._streamResizeObserver.disconnect();
+    this._streamResizeObserver.observe(el);
+  }
+
+  /** Refresh decode-near layout size from the active video / MJPEG element. */
+  private _syncMediaLayout(): void {
+    const intrinsic = this._mediaIntrinsic();
+    const box = this._streamBox();
+    let next: MediaIntrinsic | null = null;
+    if (intrinsic && box) {
+      next = layoutMediaSize(intrinsic, box.width, box.height);
+    } else if (intrinsic) {
+      next = { width: intrinsic.width, height: intrinsic.height };
+    }
+    const same =
+      (next === null && this._mediaLayout === null) ||
+      (next !== null &&
+        this._mediaLayout !== null &&
+        next.width === this._mediaLayout.width &&
+        next.height === this._mediaLayout.height);
+    if (same) return;
+    this._mediaLayout = next;
+    this._reclampViewport();
+  }
+
+  private _reclampViewport(): void {
+    const box = this._streamBox();
+    if (!box) return;
+    const next = clampViewport(
+      this._viewport,
+      box.width,
+      box.height,
+      this._mediaLayout,
+    );
+    if (
+      next.scale !== this._viewport.scale ||
+      next.x !== this._viewport.x ||
+      next.y !== this._viewport.y
+    ) {
+      this._viewport = next;
+    }
+  }
+
+  private _onMediaMeta = (): void => {
+    this._syncMediaLayout();
+  };
+
   private _stopStream(): void {
     this._attachGeneration += 1;
     this._clearRetryTimer();
@@ -251,6 +327,7 @@ export class TapoC260Card extends LitElement {
     this._streamReady = false;
     this._streamMode = "none";
     this._httpSources = [];
+    this._mediaLayout = null;
     this._resetViewport();
   }
 
@@ -359,6 +436,9 @@ export class TapoC260Card extends LitElement {
       this._scheduleAttachRetry(identity);
     } else {
       this._retryAttempt = 0;
+      await this.updateComplete;
+      if (generation !== this._attachGeneration) return;
+      this._syncMediaLayout();
     }
   }
 
@@ -483,7 +563,7 @@ export class TapoC260Card extends LitElement {
   private _onStreamTouchMove(event: TouchEvent): void {
     const box = this._streamBox();
     if (!box) return;
-    const intrinsic = this._mediaIntrinsic();
+    const media = this._mediaLayout;
 
     if (event.touches.length === 2) {
       event.preventDefault();
@@ -508,7 +588,7 @@ export class TapoC260Card extends LitElement {
           nextScale,
           box.width,
           box.height,
-          intrinsic,
+          media,
         );
       } else {
         this._gesture = {
@@ -538,7 +618,7 @@ export class TapoC260Card extends LitElement {
         dy,
         box.width,
         box.height,
-        intrinsic,
+        media,
       );
     }
   }
@@ -633,11 +713,29 @@ export class TapoC260Card extends LitElement {
     const showMjpeg = mode === "mjpeg";
     const showPlaceholder = !this._streamReady;
     const domSources = filterNativeSourceCandidates(this._httpSources);
-    const mediaTransform = viewportCss(this._viewport);
+    const layout = this._mediaLayout;
+    const box = this._streamBox();
+    const useIntrinsic = !!(
+      layout &&
+      layout.width > 0 &&
+      layout.height > 0
+    );
+    const fit =
+      useIntrinsic && box
+        ? fitScale(box.width, box.height, layout!.width, layout!.height)
+        : 1;
+    const zoomStyle = styleMap({
+      transform: viewportCss(this._viewport, useIntrinsic ? fit : 1),
+      ...(useIntrinsic
+        ? {
+            width: `${layout!.width}px`,
+            height: `${layout!.height}px`,
+          }
+        : {}),
+    });
     const mediaStyle = (visible: boolean) =>
       styleMap({
         display: visible ? "block" : "none",
-        transform: mediaTransform,
       });
 
     return html`
@@ -652,29 +750,35 @@ export class TapoC260Card extends LitElement {
             @touchend=${this._onStreamTouchEnd}
             @touchcancel=${this._onStreamTouchEnd}
           >
-            <video
-              ${ref(this._videoRef)}
-              class="stream-media"
-              style=${mediaStyle(showVideo)}
-              playsinline
-              .muted=${this._muted}
-              .volume=${this._volume}
-            >
-              ${domSources.map(
-                (s) => html`<source src=${s.src} type=${s.type} />`,
-              )}
+            <div class="stream-zoom" style=${zoomStyle}>
+              <video
+                ${ref(this._videoRef)}
+                class="stream-media"
+                style=${mediaStyle(showVideo)}
+                playsinline
+                .muted=${this._muted}
+                .volume=${this._volume}
+                @loadedmetadata=${this._onMediaMeta}
+                @loadeddata=${this._onMediaMeta}
+                @resize=${this._onMediaMeta}
+              >
+                ${domSources.map(
+                  (s) => html`<source src=${s.src} type=${s.type} />`,
+                )}
+                <img
+                  ${ref(this._fallbackImgRef)}
+                  class="stream-fallback"
+                  alt="Camera"
+                />
+              </video>
               <img
-                ${ref(this._fallbackImgRef)}
-                class="stream-fallback"
+                ${ref(this._mjpegImgRef)}
+                class="stream-media"
+                style=${mediaStyle(showMjpeg)}
                 alt="Camera"
+                @load=${this._onMediaMeta}
               />
-            </video>
-            <img
-              ${ref(this._mjpegImgRef)}
-              class="stream-media"
-              style=${mediaStyle(showMjpeg)}
-              alt="Camera"
-            />
+            </div>
             ${showPlaceholder
               ? html`
                   <div class="stream-placeholder">
